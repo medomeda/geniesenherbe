@@ -1381,10 +1381,15 @@ export default function GeniesEnHerbeApp() {
         assocMap: {},
         assocRight: []
       };
-      $("#nav-tabs").style.display = "none";
+      if ($("#nav-tabs")) $("#nav-tabs").style.display = "none";
       $("#side-panel").classList.add("in-game-hide");
+      $("#side-panel").style.display = "none";
       $("#mob-rubbar").classList.add("in-game");
-      $("#main-grid").classList.remove("full-width");
+      $("#main-grid").classList.add("full-width");
+      const hud = $(".board-hud");
+      if (hud) hud.style.display = "grid";
+      renderScores();
+      setTimer();
       afficherQuestion();
     }
 
@@ -1542,9 +1547,9 @@ export default function GeniesEnHerbeApp() {
     }
 
     /* ==========================================================================
-       ONGLETS D'ACCUEIL : JOUER / PROFIL & STATS / ATELIER & PWA
+       ROUTING ET NAVIGATION : HUB D'ACCUEIL & VUES DÉDIÉES (v2.5.0)
        ========================================================================== */
-    function accueil(tab = curTab) {
+    function accueil(tab = "home") {
       S = null;
       curTab = tab;
       clearInterval(tick);
@@ -1553,34 +1558,139 @@ export default function GeniesEnHerbeApp() {
         TTS && TTS.cancel();
       } catch (e) {}
 
-      $("#nav-tabs").style.display = "grid";
-      $$("#nav-tabs button").forEach((b) =>
-        b.classList.toggle("active", b.dataset.tab === tab)
-      );
+      if ($("#nav-tabs")) $("#nav-tabs").style.display = "none";
       $("#mob-rubbar").classList.remove("in-game");
       fermerDrawer();
       majBadgeErreurs();
 
-      if (tab === "stats") {
-        $("#side-panel").style.display = "none";
-        $("#main-grid").classList.add("full-width");
+      // Pleine largeur et masque le volet latéral hors-partie
+      $("#side-panel").style.display = "none";
+      $("#main-grid").classList.add("full-width");
+
+      // Cacher le HUD de partie en dehors du jeu
+      const hud = $(".board-hud");
+      if (hud) hud.style.display = "none";
+
+      if (tab === "scores" || tab === "stats") {
         renderTabStats();
+      } else if (tab === "themes") {
+        renderTabThemes();
+      } else if (tab === "parametres") {
+        renderTabParametres();
+      } else if (tab === "regles") {
+        renderTabRegles();
       } else if (tab === "atelier") {
-        $("#side-panel").style.display = "none";
-        $("#main-grid").classList.add("full-width");
         renderTabAtelier();
+      } else if (tab === "nouvelle_partie") {
+        renderTabNouvellePartie();
       } else {
-        $("#side-panel").style.display = "";
-        $("#side-panel").classList.remove("in-game-hide");
-        $("#main-grid").classList.remove("full-width");
-        renderTabJouer();
+        renderHome();
       }
-      renderScores();
-      renderListe();
-      setTimer();
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    function renderTabJouer() {
+    /* --- Vue Hub d'Accueil (Tableau de bord moderne) --- */
+    function renderHome() {
+      const d = $("#desk");
+      const errCount = getMistakes().length;
+      const grade = getGrade(stats.xp);
+      const best = store.get("geh-best");
+
+      d.innerHTML = `
+        <div class="dash-hero">
+          <div class="hero-head">
+            <span class="chip ok">${grade.icon} <b>${grade.nom}</b> · ${stats.xp} XP</span>
+            ${best ? `<span class="chip">🏆 Record : <b>${best.pts} pts</b></span>` : ""}
+          </div>
+          <h1>Bienvenue sur le Plateau !</h1>
+          <p>Mesure ta culture générale en solo, perfectionne tes réflexes ou entraîne-toi pour le match officiel.</p>
+        </div>
+
+        <!-- Bouton Vedette NOUVELLE PARTIE -->
+        <button type="button" class="btn-hero-launch" id="b-hero-new-game" aria-label="Lancer une nouvelle partie">
+          <div class="icon-circle">▶️</div>
+          <div class="hero-text">
+            <div class="hero-title">NOUVELLE PARTIE</div>
+            <div class="hero-sub">Match TV officiel · Express · Révision des erreurs</div>
+          </div>
+          <div class="hero-arrow">➔</div>
+        </button>
+
+        <!-- Grille de Tuiles / Cartes Tactiles -->
+        <div class="dash-grid">
+          <div class="dash-tile" data-nav="scores" role="button" tabindex="0">
+            <div class="tile-head">
+              <span class="tile-icon">🏆</span>
+              <span class="tile-badge ok">${stats.parties} partie${stats.parties > 1 ? "s" : ""}</span>
+            </div>
+            <h3 class="tile-title">Scores & Trophées</h3>
+            <p class="tile-desc">Palmarès du club, statistiques, séries record et badges débloqués.</p>
+          </div>
+
+          <div class="dash-tile" data-nav="themes" role="button" tabindex="0">
+            <div class="tile-head">
+              <span class="tile-icon">📚</span>
+              <span class="tile-badge ok">12 Thèmes</span>
+            </div>
+            <h3 class="tile-title">Thématiques & Entraînement</h3>
+            <p class="tile-desc">Explore le catalogue ou lance un entraînement ciblé par domaine.</p>
+          </div>
+
+          <div class="dash-tile" data-nav="parametres" role="button" tabindex="0">
+            <div class="tile-head">
+              <span class="tile-icon">⚙️</span>
+              <span class="tile-badge">${cfg.voix ? "🎙️ Vocal" : "⌨️ Clavier"}</span>
+            </div>
+            <h3 class="tile-title">Paramètres & Audio</h3>
+            <p class="tile-desc">Assistant micro, test sonore en direct, voix de l'animateur et chrono.</p>
+          </div>
+
+          <div class="dash-tile" data-nav="regles" role="button" tabindex="0">
+            <div class="tile-head">
+              <span class="tile-icon">📖</span>
+              <span class="tile-badge">Guide</span>
+            </div>
+            <h3 class="tile-title">Règles du Jeu</h3>
+            <p class="tile-desc">Déroulement des 4 manches télévisées, barème et astuces de jeu.</p>
+          </div>
+
+          <div class="dash-tile" data-nav="atelier" role="button" tabindex="0">
+            <div class="tile-head">
+              <span class="tile-icon">🛠️</span>
+              ${errCount ? `<span class="tile-badge bad">${errCount} à revoir</span>` : `<span class="tile-badge ok">À jour</span>`}
+            </div>
+            <h3 class="tile-title">Atelier & Mises à jour</h3>
+            <p class="tile-desc">Carnet d'erreurs, ajout de questions du club et mode hors-ligne PWA.</p>
+          </div>
+        </div>
+
+        <div class="dash-footer">
+          <span>Version ${window.GEH_VERSION || "2.5.0"} · Mode 100% Hors-Ligne PWA · Génies en Herbe</span>
+        </div>
+      `;
+
+      $("#b-hero-new-game").addEventListener("click", () => {
+        SFX.init();
+        accueil("nouvelle_partie");
+      });
+
+      $$(".dash-tile[data-nav]").forEach((tile) => {
+        const go = () => {
+          SFX.init();
+          accueil(tile.dataset.nav);
+        };
+        tile.addEventListener("click", go);
+        tile.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            go();
+          }
+        });
+      });
+    }
+
+    /* --- Vue Dédiée : Nouvelle Partie --- */
+    function renderTabNouvellePartie() {
       const d = $("#desk");
       const errCount = getMistakes().length;
       const grade = getGrade(stats.xp);
@@ -1593,15 +1703,20 @@ export default function GeniesEnHerbeApp() {
       }
 
       d.innerHTML = `
-        <div class="eyebrow">
-          <span>Entraînement Solo · 14 Rubriques & 12 Thématiques</span>
-          <span class="chip">${grade.icon} <b>${grade.nom}</b> · ${stats.xp} XP</span>
+        <div class="view-nav">
+          <button type="button" class="btn-back" id="b-back-home">← Retour Accueil</button>
+          <span class="chip">${grade.icon} <b>${grade.nom}</b></span>
         </div>
-        <h1 class="rub" style="font-size:clamp(26px,5.5vw,44px)">Prêt pour le plateau ?</h1>
-        <p class="lead">Lance un match ci-dessous, ou choisis directement l'une des <b>14 Rubriques</b> ou <b>12 Thématiques</b> (Capitales, Drapeaux, Animaux…) dans la liste.</p>
+
+        <div class="eyebrow">
+          <span>Préparation de la session</span>
+          <span class="chip ok">🎮 Plateau TV</span>
+        </div>
+        <h2 class="rub">Nouvelle Partie</h2>
+        <p class="lead">Choisis ton format, ton niveau et lance-toi sur le plateau !</p>
 
         <div class="setup" id="setup">
-          <!-- 1. Format d'entraînement (3 boutons sur la même ligne) -->
+          <!-- 1. Format de la partie -->
           <div class="field">
             <span>1. Format de la partie</span>
             <div class="seg-row-3" id="seg-format">
@@ -1622,7 +1737,7 @@ export default function GeniesEnHerbeApp() {
             </div>
           </div>
 
-          <!-- 2. Niveau & Chrono (3 boutons sur la même ligne) -->
+          <!-- 2. Niveau & Temps par question -->
           <div class="field">
             <span>2. Niveau & Temps par question</span>
             <div class="seg-row-3" id="seg-niv">
@@ -1643,9 +1758,9 @@ export default function GeniesEnHerbeApp() {
             </div>
           </div>
 
-          <!-- 3. Options Audio & Voix (3 boutons sur la même ligne + Autorisation Micro) -->
+          <!-- 3. Options Audio & Voix -->
           <div class="field">
-            <span>3. Options Audio & Voix</span>
+            <span>3. Mode de réponse</span>
             <div class="seg-row-3" id="seg-audio">
               <button type="button" data-action="clavier" aria-pressed="${!cfg.voix}">
                 <b>⌨️ Clavier</b>
@@ -1672,25 +1787,30 @@ export default function GeniesEnHerbeApp() {
                 </div>
               </div>
               <div class="mic-perm-actions">
-                <button type="button" class="btn sm" id="b-test-mic">🎙️ Autoriser & Tester le micro</button>
-                <button type="button" class="btn sm ghost" id="b-help-mic" style="display:none;color:var(--led)">🔓 Comment débloquer ?</button>
+                <button type="button" class="btn sm" id="b-test-mic">🎙️ Tester le micro</button>
+                <button type="button" class="btn sm ghost" id="b-help-mic" style="display:none;color:var(--led)">🔓 Débloquer</button>
               </div>
             </div>
           </div>
 
-          <!-- 4. Ton prénom / pseudo -->
+          <!-- 4. Prénom / pseudo -->
           <div class="field">
-            <span>4. Ton prénom / pseudo</span>
+            <span>4. Ton prénom ou pseudo</span>
             <input type="text" id="in-nom" placeholder="Ex. Champion" value="${esc(
               cfg.nom
             )}" autocomplete="off" enterkeyhint="go" aria-label="Ton prénom ou pseudo">
           </div>
 
-          <button class="btn btn-launch" type="button" id="b-start">🚀 Lancer la partie</button>
+          <button class="btn btn-launch" type="button" id="b-start">🚀 Entrer sur le plateau</button>
         </div>
       `;
 
       majBanniereMicroAccueil();
+
+      $("#b-back-home").addEventListener("click", () => {
+        SFX.init();
+        accueil("home");
+      });
 
       $("#seg-format").addEventListener("click", (e) => {
         const b = e.target.closest("button");
@@ -1707,7 +1827,6 @@ export default function GeniesEnHerbeApp() {
         cfg.temps = NIVEAUX[cfg.niveau].t;
         $("#in-temps").value = cfg.temps;
         $("#t-lbl").textContent = cfg.temps + " s";
-        setTimer();
       });
 
       $("#seg-audio").addEventListener("click", async (e) => {
@@ -1723,7 +1842,6 @@ export default function GeniesEnHerbeApp() {
           );
           store.set("geh-cfg", cfg);
           majBanniereMicroAccueil();
-          // Dès que l'utilisateur touche "🎙️ À l'oral", demander immédiatement l'autorisation micro au téléphone !
           if (cfg.voix) {
             await demanderPermissionMicro(false);
           }
@@ -1747,7 +1865,6 @@ export default function GeniesEnHerbeApp() {
       $("#in-temps").addEventListener("input", (e) => {
         cfg.temps = +e.target.value;
         $("#t-lbl").textContent = cfg.temps + " s";
-        setTimer();
       });
 
       $("#in-nom").addEventListener("keydown", (e) => {
@@ -1766,6 +1883,360 @@ export default function GeniesEnHerbeApp() {
       });
     }
 
+    /* --- Vue Dédiée : Thématiques & Catalogue --- */
+    function renderTabThemes() {
+      const d = $("#desk");
+      const TBANK = getThemesBank();
+
+      d.innerHTML = `
+        <div class="view-nav">
+          <button type="button" class="btn-back" id="b-back-home">← Retour Accueil</button>
+          <span class="chip">📚 Catalogue</span>
+        </div>
+
+        <div class="eyebrow">
+          <span>Entraînement Libre</span>
+          <span class="chip ok">Solo</span>
+        </div>
+        <h2 class="rub">Thématiques & Rubriques du Jeu</h2>
+        <p class="lead">Choisis une thématique ou une rubrique ci-dessous pour lancer une séance d'entraînement ciblée :</p>
+
+        <div class="field" style="margin-bottom:14px">
+          <div class="seg-row-3" id="seg-theme-tab" style="max-width:380px">
+            <button type="button" data-mode="themes" class="active" aria-pressed="true">
+              <b>🌍 12 Thématiques</b>
+            </button>
+            <button type="button" data-mode="rubriques" aria-pressed="false">
+              <b>📋 14 Rubriques TV</b>
+            </button>
+          </div>
+        </div>
+
+        <div id="themes-grid-container" class="themes-grid-cards"></div>
+      `;
+
+      $("#b-back-home").addEventListener("click", () => {
+        SFX.init();
+        accueil("home");
+      });
+
+      function renderGrid(mode) {
+        const cont = $("#themes-grid-container");
+        if (!cont) return;
+        if (mode === "themes") {
+          cont.innerHTML = THEMES.map((t) => {
+            const count = (TBANK[t.id] || []).length;
+            return `
+              <div class="theme-card-item" data-theme="${t.id}" role="button" tabindex="0">
+                <div class="t-icon">${t.icon}</div>
+                <div class="t-nom">${esc(t.nom)}</div>
+                <div class="t-cnt">${count} question${count > 1 ? "s" : ""} ${t.sousTitre ? `· ${esc(t.sousTitre)}` : ""}</div>
+                <button class="btn sm ghost t-btn" type="button">▶️ S'entraîner</button>
+              </div>
+            `;
+          }).join("");
+
+          cont.querySelectorAll(".theme-card-item").forEach((card) => {
+            const go = async () => {
+              SFX.init();
+              cfg.themeCible = card.dataset.theme;
+              await nouvellePartie("theme");
+            };
+            card.addEventListener("click", go);
+            card.addEventListener("keydown", (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                go();
+              }
+            });
+          });
+        } else {
+          cont.innerHTML = RUBRIQUES.map((r, i) => {
+            return `
+              <div class="theme-card-item" data-rub-idx="${i}" role="button" tabindex="0">
+                <div class="t-icon">${r.icon}</div>
+                <div class="t-nom">${esc(r.nom)}</div>
+                <div class="t-cnt">Rubrique officielle TV</div>
+                <button class="btn sm ghost t-btn" type="button">▶️ S'entraîner</button>
+              </div>
+            `;
+          }).join("");
+
+          cont.querySelectorAll(".theme-card-item").forEach((card) => {
+            const go = async () => {
+              SFX.init();
+              const idx = parseInt(card.dataset.rubIdx, 10);
+              await nouvellePartie("rubrique", idx);
+            };
+            card.addEventListener("click", go);
+            card.addEventListener("keydown", (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                go();
+              }
+            });
+          });
+        }
+      }
+
+      renderGrid("themes");
+
+      $("#seg-theme-tab").addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        $$("#seg-theme-tab button").forEach((x) => {
+          x.classList.toggle("active", x === b);
+          x.setAttribute("aria-pressed", x === b);
+        });
+        renderGrid(b.dataset.mode);
+      });
+    }
+
+    /* --- Vue Dédiée : Paramètres & Audio --- */
+    function renderTabParametres() {
+      const d = $("#desk");
+
+      d.innerHTML = `
+        <div class="view-nav">
+          <button type="button" class="btn-back" id="b-back-home">← Retour Accueil</button>
+          <span class="chip">⚙️ Configuration</span>
+        </div>
+
+        <div class="eyebrow">
+          <span>Préférences & Confort</span>
+          <span class="chip ok">Audio & Jeu</span>
+        </div>
+        <h2 class="rub">Paramètres & Audio</h2>
+        <p class="lead">Personnalise ton expérience de jeu, teste ton microphone et ajuste le son.</p>
+
+        <div class="setup">
+          <!-- 1. Mode de réponse -->
+          <div class="field">
+            <span>1. Mode de réponse principal</span>
+            <div class="seg-row-3" id="param-seg-rep">
+              <button type="button" data-act="clavier" aria-pressed="${!cfg.voix}">
+                <b>⌨️ Clavier</b>
+                <small>Saisie écrite classique</small>
+              </button>
+              <button type="button" data-act="micro" aria-pressed="${cfg.voix}">
+                <b>🎙️ À l'oral</b>
+                <small>Reconnaissance vocale</small>
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. Assistant Microphone -->
+          <div class="field">
+            <span>2. Assistant Microphone & Calibration</span>
+            <div class="mic-perm-box" style="display:flex">
+              <div style="flex:1;min-width:190px">
+                <span id="param-mic-txt"></span>
+                <div id="param-mic-meter" class="mic-meter" style="display:none;margin-top:6px">
+                  <div class="mic-meter-bar" id="param-mic-meter-bar"></div>
+                </div>
+              </div>
+              <div class="mic-perm-actions">
+                <button type="button" class="btn sm" id="b-param-test-mic">🎙️ Tester le micro</button>
+                <button type="button" class="btn sm ghost" id="b-param-help-mic" style="display:none;color:var(--led)">🔓 Débloquer</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Voix de l'Animateur -->
+          <div class="field">
+            <span>3. Voix de l'Animateur (Lecture vocale des questions)</span>
+            <div class="seg-row-3" id="param-seg-tts">
+              <button type="button" data-act="tts-on" aria-pressed="${cfg.lecture}">
+                <b>🗣️ Activée</b>
+                <small>Lit les questions à voix haute</small>
+              </button>
+              <button type="button" data-act="tts-off" aria-pressed="${!cfg.lecture}">
+                <b>🔇 Désactivée</b>
+                <small>Lecture silencieuse</small>
+              </button>
+            </div>
+          </div>
+
+          <!-- 4. Effets Sonores (SFX) -->
+          <div class="field">
+            <span>4. Effets Sonores du Plateau (SFX)</span>
+            <div class="seg-row-3" id="param-seg-sfx">
+              <button type="button" data-act="sfx-on" aria-pressed="${cfg.sfx}">
+                <b>🔊 Sons Activés</b>
+                <small>Bonne réponse, fin de manche</small>
+              </button>
+              <button type="button" data-act="sfx-off" aria-pressed="${!cfg.sfx}">
+                <b>🔇 Muet</b>
+                <small>Aucun bruitage sonore</small>
+              </button>
+            </div>
+          </div>
+
+          <!-- 5. Temps de réponse par défaut -->
+          <div class="field">
+            <span>5. Temps de réponse par question (secondes)</span>
+            <div class="range">
+              <input type="range" id="param-in-temps" min="10" max="90" step="5" value="${cfg.temps}" aria-label="Temps de réponse par défaut">
+              <span class="led" id="param-t-lbl">${cfg.temps} s</span>
+            </div>
+          </div>
+
+          <!-- 6. Ton prénom ou pseudo -->
+          <div class="field">
+            <span>6. Ton prénom / pseudo</span>
+            <input type="text" id="param-in-nom" placeholder="Ex. Champion" value="${esc(cfg.nom)}" autocomplete="off" aria-label="Ton prénom ou pseudo">
+          </div>
+        </div>
+      `;
+
+      $("#b-back-home").addEventListener("click", () => {
+        SFX.init();
+        accueil("home");
+      });
+
+      function updateMicStatus() {
+        const txt = $("#param-mic-txt");
+        const hlp = $("#b-param-help-mic");
+        if (!txt) return;
+        if (V.perm === "granted") {
+          txt.innerHTML = `<b style="color:var(--ok)">✅ Micro autorisé</b> · Prêt pour la reconnaissance vocale.`;
+          if (hlp) hlp.style.display = "none";
+        } else if (V.perm === "denied") {
+          txt.innerHTML = `<b style="color:var(--bad)">⛔ Micro bloqué</b> · Clique sur Débloquer pour le guide.`;
+          if (hlp) hlp.style.display = "inline-flex";
+        } else {
+          txt.innerHTML = `<span>⏳ Micro non configuré. Clique sur « Tester le micro ».</span>`;
+          if (hlp) hlp.style.display = "none";
+        }
+      }
+      updateMicStatus();
+
+      $("#b-param-test-mic").addEventListener("click", async () => {
+        SFX.init();
+        await demanderPermissionMicro(true);
+        updateMicStatus();
+      });
+      $("#b-param-help-mic").addEventListener("click", () => ouvrirModalMicro());
+
+      $("#param-seg-rep").addEventListener("click", async (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        const act = b.dataset.act;
+        cfg.voix = act === "micro";
+        $$("#param-seg-rep button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+        store.set("geh-cfg", cfg);
+        if (cfg.voix) await demanderPermissionMicro(false);
+        updateMicStatus();
+      });
+
+      $("#param-seg-tts").addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        cfg.lecture = b.dataset.act === "tts-on";
+        $$("#param-seg-tts button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+        store.set("geh-cfg", cfg);
+      });
+
+      $("#param-seg-sfx").addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        cfg.sfx = b.dataset.act === "sfx-on";
+        $$("#param-seg-sfx button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+        store.set("geh-cfg", cfg);
+        majBtnSfx();
+        if (cfg.sfx) SFX.ok();
+      });
+
+      $("#param-in-temps").addEventListener("input", (e) => {
+        cfg.temps = +e.target.value;
+        $("#param-t-lbl").textContent = cfg.temps + " s";
+        store.set("geh-cfg", cfg);
+      });
+
+      $("#param-in-nom").addEventListener("input", (e) => {
+        cfg.nom = e.target.value.trim();
+        store.set("geh-cfg", cfg);
+      });
+    }
+
+    /* --- Vue Dédiée : Règles du Jeu TV --- */
+    function renderTabRegles() {
+      const d = $("#desk");
+
+      d.innerHTML = `
+        <div class="view-nav">
+          <button type="button" class="btn-back" id="b-back-home">← Retour Accueil</button>
+          <span class="chip">📖 Guide</span>
+        </div>
+
+        <div class="eyebrow">
+          <span>Guide Officiel</span>
+          <span class="chip ok">Télévision</span>
+        </div>
+        <h2 class="rub">Règles & Déroulement du Match TV</h2>
+        <p class="lead">Le match se compose de 4 grandes manches télévisées. Voici les spécificités de chacune :</p>
+
+        <div class="regles-list">
+          <div class="regle-card">
+            <div class="regle-card-head">
+              <div class="regle-card-icon">🔍</div>
+              <h3 class="regle-card-title">1. Épreuve d'Identification (Casse-tête & Qui-suis-je)</h3>
+            </div>
+            <p>Une énigme est proposée à travers <b>4 indices successifs</b> révélés un à un. Plus l'indice est précoce, plus le gain en points est élevé !</p>
+            <div class="bareme">
+              1er indice : <b>40 pts</b> · 2e indice : <b>30 pts</b> · 3e indice : <b>20 pts</b> · 4e indice : <b>10 pts</b>
+            </div>
+          </div>
+
+          <div class="regle-card">
+            <div class="regle-card-head">
+              <div class="regle-card-icon">⚡</div>
+              <h3 class="regle-card-title">2. Épreuve Éclair</h3>
+            </div>
+            <p>Une série rapide de <b>10 questions directes</b> posées en rafale. Il s'agit d'une épreuve de réflexe pur et de vitesse.</p>
+            <div class="bareme">
+              <b>10 points</b> par bonne réponse · <b>0 point</b> en cas de passe ou d'erreur.
+            </div>
+          </div>
+
+          <div class="regle-card">
+            <div class="regle-card-head">
+              <div class="regle-card-icon">🎯</div>
+              <h3 class="regle-card-title">3. Épreuve Thématique (Spécialités)</h3>
+            </div>
+            <p>Les candidats affrontent des questions ciblées sur un thème précis (Histoire, Cinéma, Littérature, Sciences, Sport, Géographie).</p>
+            <div class="bareme">
+              <b>10 points</b> par bonne réponse · Bonus de série active si vous enchaînez sans faute !
+            </div>
+          </div>
+
+          <div class="regle-card">
+            <div class="regle-card-head">
+              <div class="regle-card-icon">🏃</div>
+              <h3 class="regle-card-title">4. Épreuve de Relais</h3>
+            </div>
+            <p>Une chaîne de <b>4 questions successives</b>. Chaque équipier doit répondre sans faire d'erreur pour transmettre le témoin au suivant.</p>
+            <div class="bareme">
+              <b>10 points</b> par bonne réponse + <b>Bonus de 20 points</b> pour un Relais parfait sans faute.
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;text-align:center">
+          <button type="button" class="btn btn-launch" id="b-regles-play" style="max-width:320px;margin:0 auto">🚀 Prêt à jouer !</button>
+        </div>
+      `;
+
+      $("#b-back-home").addEventListener("click", () => {
+        SFX.init();
+        accueil("home");
+      });
+      $("#b-regles-play").addEventListener("click", () => {
+        SFX.init();
+        accueil("nouvelle_partie");
+      });
+    }
+
     function renderTabStats() {
       const d = $("#desk");
       const grade = getGrade(stats.xp);
@@ -1773,11 +2244,14 @@ export default function GeniesEnHerbeApp() {
       const errs = getMistakes();
 
       d.innerHTML = `
+        <div class="view-nav">
+          <button type="button" class="btn-back" id="b-back-home">← Retour Accueil</button>
+          <span class="chip">${grade.icon} <b>${grade.nom}</b></span>
+        </div>
+
         <div class="eyebrow">
           <span>Carnet du joueur · Progression</span>
-          <span class="chip">${grade.icon} <b>${grade.nom}</b> (${stats.xp} / ${
-        grade.next
-      } XP)</span>
+          <span class="chip ok">${stats.xp} / ${grade.next} XP</span>
         </div>
         <h2 class="rub">Mon Club & Statistiques</h2>
 
@@ -1844,6 +2318,10 @@ export default function GeniesEnHerbeApp() {
         </div>
       `;
 
+      $("#b-back-home")?.addEventListener("click", () => {
+        SFX.init();
+        accueil("home");
+      });
       $("#b-launch-rev")?.addEventListener("click", () => nouvellePartie("revision"));
       $("#b-clear-rev")?.addEventListener("click", () => {
         store.set("geh-mistakes", []);
@@ -1860,6 +2338,11 @@ export default function GeniesEnHerbeApp() {
         window.navigator.standalone;
 
       d.innerHTML = `
+        <div class="view-nav">
+          <button type="button" class="btn-back" id="b-back-home">← Retour Accueil</button>
+          <span class="chip">🛠️ Atelier & MAJ</span>
+        </div>
+
         <div class="eyebrow">
           <span>Application Next.js PWA · Mode Hors-Ligne & Micro</span>
           <span class="chip ok">v${window.GEH_VERSION || "2.5.0"}</span>
@@ -1979,6 +2462,10 @@ export default function GeniesEnHerbeApp() {
         </div>
       `;
 
+      $("#b-back-home")?.addEventListener("click", () => {
+        SFX.init();
+        accueil("home");
+      });
       $("#b-install-pwa")?.addEventListener("click", () => {
         declencherInstallation();
       });
@@ -2200,7 +2687,11 @@ export default function GeniesEnHerbeApp() {
         <div id="fb"></div>
       `;
 
-      $("#b-quit")?.addEventListener("click", () => accueil("jouer"));
+      $("#b-quit")?.addEventListener("click", () => {
+        if (confirm("Veux-tu vraiment quitter la partie en cours et retourner à l'accueil ?")) {
+          accueil("home");
+        }
+      });
       $("#b-replay-tts")?.addEventListener("click", () => {
         focusRep();
         lire(texteALire(r, it), () => focusRep());
@@ -2740,7 +3231,7 @@ export default function GeniesEnHerbeApp() {
 
       $("#b-rejouer").addEventListener("click", () => nouvellePartie());
       $("#b-rev-now")?.addEventListener("click", () => nouvellePartie("revision"));
-      $("#b-menu").addEventListener("click", () => accueil("jouer"));
+      $("#b-menu").addEventListener("click", () => accueil("home"));
       renderScores();
       renderListe();
       setTimer();
@@ -2807,8 +3298,8 @@ export default function GeniesEnHerbeApp() {
       accueil(b.dataset.tab);
     });
 
-    $("#logo-home").addEventListener("click", () => accueil("jouer"));
-    $("#title-home").addEventListener("click", () => accueil("jouer"));
+    $("#logo-home").addEventListener("click", () => accueil("home"));
+    $("#title-home").addEventListener("click", () => accueil("home"));
 
     function majBtnSfx() {
       const b = $("#b-sfx");
@@ -3067,7 +3558,7 @@ export default function GeniesEnHerbeApp() {
       cfg.format = urlMode;
     }
 
-    accueil("jouer");
+    accueil("home");
   }, [mounted]);
 
   if (!mounted) {
@@ -3244,8 +3735,8 @@ export default function GeniesEnHerbeApp() {
           </div>
         </header>
 
-        {/* Navigation par onglets (3 colonnes sur la même ligne) */}
-        <nav className="nav-tabs" id="nav-tabs" aria-label="Menu principal">
+        {/* Ancienne barre d'onglets (masquée au profit du nouveau Hub Dashboard) */}
+        <nav className="nav-tabs" id="nav-tabs" aria-label="Menu principal" style={{ display: "none" }}>
           <button type="button" className="active" data-tab="jouer">
             🎮 Jouer
           </button>

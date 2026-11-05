@@ -1556,3 +1556,316 @@ kbd {
   }
 }
 
+/* ==========================================================================
+   NOUVEAU HUB D'ACCUEIL & TABLEAU DE BORD TACTILE (v2.5.0)
+   ========================================================================== */
+
+/* Bannière d'accueil du joueur */
+.dash-hero {
+  background: linear-gradient(135deg, rgba(255, 181, 71, 0.12), rgba(11, 24, 34, 0.85));
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dash-hero .hero-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dash-hero h1 {
+  font-family: var(--f-display);
+  font-size: clamp(24px, 5.2vw, 36px);
+  margin: 0;
+  color: var(--fg);
+  line-height: 1.15;
+}
+.dash-hero p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Bouton Vedette NOUVELLE PARTIE (Hero Card) */
+.btn-hero-launch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(255, 181, 71, 0.28), rgba(255, 181, 71, 0.1));
+  border: 2px solid var(--led);
+  border-radius: 16px;
+  padding: 18px 22px;
+  margin-bottom: 18px;
+  color: var(--fg);
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 4px 20px rgba(255, 181, 71, 0.18);
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  width: 100%;
+}
+.btn-hero-launch:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, rgba(255, 181, 71, 0.38), rgba(255, 181, 71, 0.18));
+  box-shadow: 0 6px 26px rgba(255, 181, 71, 0.28);
+}
+.btn-hero-launch:active {
+  transform: scale(0.98);
+}
+.btn-hero-launch .icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--led);
+  color: #1c1204;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 900;
+  flex-shrink: 0;
+  box-shadow: 0 0 16px rgba(255, 181, 71, 0.45);
+}
+.btn-hero-launch .hero-text {
+  flex: 1;
+}
+.btn-hero-launch .hero-title {
+  font-family: var(--f-display);
+  font-size: clamp(18px, 4.5vw, 22px);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-hero-launch .hero-sub {
+  font-size: 13px;
+  color: var(--muted);
+}
+.btn-hero-launch .hero-arrow {
+  font-size: 24px;
+  color: var(--led);
+  transition: transform 0.2s;
+}
+.btn-hero-launch:hover .hero-arrow {
+  transform: translateX(4px);
+}
+
+/* Grille de tuiles tactiles du Menu */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.dash-tile {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  text-align: left;
+  color: var(--fg);
+  position: relative;
+}
+.dash-tile:hover {
+  border-color: var(--led);
+  background: var(--panel2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+.dash-tile:active {
+  transform: scale(0.98);
+}
+.dash-tile .tile-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.dash-tile .tile-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+.dash-tile .tile-badge {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+.dash-tile .tile-badge.ok {
+  background: rgba(95, 208, 138, 0.2);
+  color: var(--ok);
+  border: 1px solid var(--ok);
+}
+.dash-tile .tile-badge.bad {
+  background: rgba(255, 107, 91, 0.2);
+  color: var(--bad);
+  border: 1px solid var(--bad);
+}
+.dash-tile .tile-title {
+  font-family: var(--f-display);
+  font-size: 16.5px;
+  font-weight: 700;
+  color: var(--fg);
+  margin: 0;
+}
+.dash-tile .tile-desc {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Pied de page du tableau de bord */
+.dash-footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 12px;
+  border-top: 1px solid var(--line);
+  margin-top: 12px;
+}
+
+/* Barre de navigation des vues dédiées (Bouton retour) */
+.view-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.btn-back {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--fg);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-back:hover {
+  border-color: var(--led);
+  background: var(--panel2);
+  color: var(--led);
+}
+.btn-back:active {
+  transform: scale(0.96);
+}
+
+/* Grilles thématiques & rubriques pour la vue dédiée */
+.themes-grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.theme-card-item {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  color: var(--fg);
+  text-align: left;
+}
+.theme-card-item:hover {
+  border-color: var(--led);
+  background: var(--panel2);
+  transform: translateY(-2px);
+}
+.theme-card-item .t-icon {
+  font-size: 24px;
+  margin-bottom: 2px;
+}
+.theme-card-item .t-nom {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--fg);
+}
+.theme-card-item .t-cnt {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.theme-card-item .t-btn {
+  margin-top: 6px;
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
+/* Fiches des règles du jeu */
+.regles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 12px;
+}
+.regle-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.regle-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.regle-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.regle-card-title {
+  font-family: var(--f-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fg);
+  margin: 0;
+}
+.regle-card p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--fg);
+  line-height: 1.45;
+}
+.regle-card .bareme {
+  background: #08131b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: var(--led);
+  font-weight: 600;
+}
+
+
