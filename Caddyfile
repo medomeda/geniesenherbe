@@ -1,0 +1,29 @@
+# ==========================================================================
+#  Génies en Herbe — Configuration Caddy pour déploiement Statique sur Coolify
+# ==========================================================================
+
+:80 {
+    root * /app/out
+    encode zstd gzip
+    file_server
+
+    # Sécurité & Autorisation microphone pour le jeu vocal
+    header Permissions-Policy "microphone=(self)"
+
+    # Service Worker : aucun cache HTTP pour forcer la détection des MAJ PWA
+    @sw path /sw.js
+    header @sw Cache-Control "no-cache, no-store, must-revalidate"
+    header @sw Service-Worker-Allowed "/"
+
+    # Manifest PWA : Content-Type explicite
+    @manifest path /manifest.webmanifest
+    header @manifest Content-Type "application/manifest+json"
+
+    # Assets compilés Next.js avec hash : cache long
+    @static path /_next/static/*
+    header @static Cache-Control "public, max-age=31536000, immutable"
+
+    # Redirection SPA / PWA : toute route non trouvée renvoie sur index.html
+    try_files {path} {path}/ /index.html
+}
+

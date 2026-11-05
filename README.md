@@ -12,15 +12,34 @@ Application interactive d'entraînement de **Génies en Herbe** construite avec 
 - **PWA Hors-ligne & Mises à jour** :
   - Manifeste Web (`public/manifest.webmanifest`), icônes adaptatives (`public/icons/`) et Service Worker (`public/sw.js`) mettant en cache les bundles Next.js et les +410 questions.
 
-## 🚀 Démarrage rapide
+## 🚀 Démarrage local
 
 ```bash
 # Installer les dépendances
 npm install
 
-# Lancer le serveur de développement Next.js (http://localhost:3000)
+# Lancer en développement (http://localhost:3401)
 npm run dev
 
-# Pour tester sur un téléphone via le Wi-Fi local avec accès au microphone (HTTPS requis sur mobile) :
+# Tester en HTTPS sur mobile via le réseau Wi-Fi local :
 npm run dev:https
 ```
+
+## 🌐 Déploiement sur Coolify (2 options configurées)
+
+Le projet supporte au choix les deux modes de déploiement Coolify :
+
+### Option 1 — Serveur Node.js Standalone (Recommandé)
+- **Build Pack dans Coolify** : `Dockerfile` (ou `Docker Compose` avec `docker-compose.yml`)
+- **Port** : `3000`
+- **Fichier utilisé** : `Dockerfile` (image multi-stage `node:22-alpine` de ~120 Mo)
+- **Avantage** : En-têtes HTTP de sécurité, cache PWA et permissions micro injectés automatiquement par Next.js.
+
+### Option 2 — Site Statique pur (Caddy ou Nginx)
+- **Dans Coolify** : Choisir le type d'application `Static`
+  - Build command : `npm run build:export`
+  - Publish directory : `out`
+  - Un fichier `Caddyfile` est déjà inclus à la racine avec la configuration des en-têtes PWA et micro.
+- **Ou via Docker Nginx** :
+  - Build Pack : `Dockerfile` en pointant sur `Dockerfile.static`
+  - Utilise `nginx:alpine` (~25 Mo) avec le fichier `nginx.conf` fourni.
