@@ -1,4 +1,4 @@
-export const GEH_VERSION = "2.4.0";
+export const GEH_VERSION = "2.5.0";
 export const GEH_UPDATED = "2026-11-05";
 export const DEFAULT_BANK = {
   "sport": [

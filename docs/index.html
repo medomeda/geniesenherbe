@@ -2720,7 +2720,7 @@ function renderTabAtelier() {
   d.innerHTML = `
     <div class="eyebrow">
       <span>Application PWA · Mode Hors-Ligne & Mises à jour</span>
-      <span class="chip ok">v${window.GEH_VERSION || "2.2.0"}</span>
+      <span class="chip ok">v${window.GEH_VERSION || "2.5.0"}</span>
     </div>
     <h2 class="rub">Application, Mises à jour & Questions</h2>
 
@@ -2745,7 +2745,7 @@ function renderTabAtelier() {
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <div>
           <b style="font-size:16px">🔄 Mises à jour</b>
-          <div class="hint" id="upd-status">Version installée : v${window.GEH_VERSION || "2.2.0"} · Prêt hors-ligne.</div>
+          <div class="hint" id="upd-status">Version installée : v${window.GEH_VERSION || "2.5.0"} · Prêt hors-ligne.</div>
         </div>
         <button class="btn sm ghost" type="button" id="b-check-update">🔍 Vérifier les mises à jour</button>
       </div>
@@ -3637,8 +3637,7 @@ async function verifierMiseAJourManuelle() {
         }
       }
     }
-    if (st) st.textContent = `✅ Application à jour (v${window.GEH_VERSION || "2.2.0"}) et prête hors-ligne !`;
-    SFX.ok();
+    if (st) st.textContent = `✅ Application à jour (v${window.GEH_VERSION || "2.5.0"}) et prête hors-ligne !`;
   } catch (e) {
     if (st) st.textContent = "✅ Version actuelle prête hors-ligne.";
   }
@@ -3659,6 +3658,15 @@ if ("serviceWorker" in navigator) {
           }
         });
       });
+
+      // Vérification immédiate et récurrente
+      if (navigator.onLine) reg.update().catch(() => {});
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && navigator.onLine) reg.update().catch(() => {});
+      });
+      setInterval(() => {
+        if (navigator.onLine) reg.update().catch(() => {});
+      }, 45 * 60 * 1000);
     }).catch(() => {});
 
     let refreshing = false;

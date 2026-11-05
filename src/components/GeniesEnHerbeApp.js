@@ -1862,7 +1862,7 @@ export default function GeniesEnHerbeApp() {
       d.innerHTML = `
         <div class="eyebrow">
           <span>Application Next.js PWA · Mode Hors-Ligne & Micro</span>
-          <span class="chip ok">v${window.GEH_VERSION || "2.4.0"}</span>
+          <span class="chip ok">v${window.GEH_VERSION || "2.5.0"}</span>
         </div>
         <h2 class="rub">Application, Mises à jour & Questions</h2>
 
@@ -1913,7 +1913,7 @@ export default function GeniesEnHerbeApp() {
             <div>
               <b style="font-size:16px">🔄 Mises à jour</b>
               <div class="hint" id="upd-status">Version installée : v${
-                window.GEH_VERSION || "2.4.0"
+                window.GEH_VERSION || "2.5.0"
               } · Prêt hors-ligne.</div>
             </div>
             <button class="btn sm ghost" type="button" id="b-check-update">🔍 Vérifier les mises à jour</button>
@@ -3009,7 +3009,7 @@ export default function GeniesEnHerbeApp() {
         }
         if (st)
           st.textContent = `✅ Application à jour (v${
-            window.GEH_VERSION || "2.4.0"
+            window.GEH_VERSION || "2.5.0"
           }) et prête hors-ligne !`;
       } catch (e) {
         if (st) st.textContent = "✅ Version actuelle prête hors-ligne.";
@@ -3032,6 +3032,25 @@ export default function GeniesEnHerbeApp() {
               }
             });
           });
+
+          // Vérifier immédiatement si une nouvelle version existe sur le serveur
+          if (navigator.onLine) {
+            reg.update().catch(() => {});
+          }
+
+          // Détection automatique au retour sur l'application (changement d'onglet / déverrouillage)
+          document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible" && navigator.onLine) {
+              reg.update().catch(() => {});
+            }
+          });
+
+          // Vérification périodique discrète en arrière-plan toutes les 45 minutes
+          setInterval(() => {
+            if (navigator.onLine) {
+              reg.update().catch(() => {});
+            }
+          }, 45 * 60 * 1000);
         })
         .catch(() => {});
 

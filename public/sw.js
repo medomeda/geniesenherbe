@@ -19,7 +19,14 @@ self.addEventListener("install", (event) => {
     caches
       .open(CACHE_VERSION)
       .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
+      .then(() => {
+        // Ne s'active automatiquement que lors de la toute première installation (pas de SW actif préalable).
+        // En cas de mise à jour, reste en attente ("waiting") afin de permettre à l'application
+        // d'avertir l'utilisateur via une notification avant d'installer la nouvelle version !
+        if (!self.registration.active) {
+          return self.skipWaiting();
+        }
+      })
   );
 });
 

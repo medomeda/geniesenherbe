@@ -3,7 +3,7 @@
    Format des questions classiques : [Question, [Réponses acceptées], "Anecdote / Explication"]
    ========================================================================== */
 
-window.GEH_VERSION = "2.3.1";
+window.GEH_VERSION = "2.5.0";
 window.GEH_UPDATED = "2026-11-05";
 
 window.DEFAULT_BANK = {

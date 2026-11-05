@@ -2,8 +2,8 @@
    SERVICE WORKER — GÉNIES EN HERBE PWA (HORS-LIGNE & MISES À JOUR)
    ========================================================================== */
 
-const CACHE_VERSION = "geh-pwa-v2.3.1";
-const RUNTIME_CACHE = "geh-runtime-v2.3.1";
+const CACHE_VERSION = "geh-pwa-v2.5.0";
+const RUNTIME_CACHE = "geh-runtime-v2.5.0";
 
 const APP_SHELL = [
   "./",
