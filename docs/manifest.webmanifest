@@ -1,0 +1,68 @@
+{
+  "name": "Génies en Herbe — Académie & Plateau Live",
+  "short_name": "Génies en Herbe",
+  "description": "Entraînement interactif et ludique de culture générale (14 rubriques officielles, 12 thématiques, voix, hors-ligne, statistiques et révisions).",
+  "lang": "fr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1b26",
+  "theme_color": "#0d1b26",
+  "categories": ["education", "games", "trivia"],
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Match Express (5 min)",
+      "short_name": "Express",
+      "description": "Lancer un entraînement rapide sur une sélection de rubriques",
+      "url": "./index.html?mode=express",
+      "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Match Officiel Complet",
+      "short_name": "Match Complet",
+      "description": "Jouer les 14 rubriques officielles de Génies en Herbe",
+      "url": "./index.html?mode=complet",
+      "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Réviser mes erreurs",
+      "short_name": "Révision",
+      "description": "Rejouer les questions manquées lors des parties précédentes",
+      "url": "./index.html?mode=revision",
+      "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

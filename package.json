@@ -1,0 +1,18 @@
+{
+  "name": "genies-en-herbe-pwa",
+  "version": "2.4.0",
+  "private": true,
+  "description": "Génies en Herbe — Académie & Plateau Live (Application Next.js PWA hors-ligne avec mode vocal)",
+  "scripts": {
+    "dev": "next dev --port=3401",
+    "dev:https": "next dev --experimental-https",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

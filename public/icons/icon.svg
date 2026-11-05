@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#1d435d"/>
+      <stop offset="100%" stop-color="#08131b"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd27d"/>
+      <stop offset="50%" stop-color="#ffb547"/>
+      <stop offset="100%" stop-color="#e08914"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#36a862"/>
+      <stop offset="100%" stop-color="#7ef0a9"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  <!-- Background Rounded Square -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="18" y="18" width="476" height="476" rx="96" fill="none" stroke="#274459" stroke-width="6"/>
+  
+  <!-- Outer Studio Ring -->
+  <circle cx="256" cy="250" r="176" fill="none" stroke="#274459" stroke-width="10" stroke-dasharray="22 12"/>
+  <circle cx="256" cy="250" r="154" fill="#0d1b26" stroke="url(#gold)" stroke-width="8"/>
+
+  <!-- Lightbulb / Trophy Hybrid -->
+  <path d="M256 108c-58 0-104 45-104 101 0 36 19 68 48 86 11 7 18 19 18 32v10h76v-10c0-13 7-25 18-32 29-18 48-50 48-86 0-56-46-101-104-101z" fill="url(#gold)" filter="url(#glow)" opacity="0.22"/>
+  <path d="M256 116c-53 0-96 41-96 93 0 33 18 63 45 79 10 6 16 17 16 29v12h70v-12c0-12 6-23 16-29 27-16 45-46 45-79 0-52-43-93-96-93z" fill="none" stroke="url(#gold)" stroke-width="16" stroke-linejoin="round"/>
+  
+  <!-- Sprout ("en Herbe") inside the bulb -->
+  <path d="M256 290v-78" stroke="url(#green)" stroke-width="14" stroke-linecap="round"/>
+  <path d="M256 244c0-34 26-58 58-58 0 34-24 58-58 58z" fill="url(#green)"/>
+  <path d="M256 260c0-30-24-50-52-50 0 30 22 50 52 50z" fill="url(#green)"/>
+
+  <!-- Bulb Base / Pedestal -->
+  <rect x="218" y="346" width="76" height="16" rx="8" fill="url(#gold)"/>
+  <rect x="228" y="370" width="56" height="14" rx="7" fill="url(#gold)"/>
+  
+  <!-- Lightning Sparks (Éclairs) -->
+  <path d="M114 148l-28 14 18 12-16 20" fill="none" stroke="#ffb547" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M398 148l28 14-18 12 16 20" fill="none" stroke="#ffb547" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Bottom Banner Text "GH" -->
+  <rect x="146" y="408" width="220" height="54" rx="27" fill="#142838" stroke="url(#gold)" stroke-width="5"/>
+  <text x="256" y="445" text-anchor="middle" font-family="Impact, Arial Black, sans-serif" font-weight="900" font-size="34" fill="#ffb547" letter-spacing="4">GÉNIES</text>
+</svg>
+
