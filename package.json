@@ -4,8 +4,8 @@
   "private": true,
   "description": "Génies en Herbe — Académie & Plateau Live (Application Next.js PWA hors-ligne avec mode vocal)",
   "scripts": {
-    "dev": "next dev --port=3401",
-    "dev:https": "next dev --experimental-https",
+    "dev": "next dev --hostname 0.0.0.0 --port=3401",
+    "dev:https": "next dev --experimental-https --hostname 0.0.0.0 --port=3401",
     "build": "next build",
     "build:standalone": "next build",
     "build:export": "OUTPUT_MODE=export next build",

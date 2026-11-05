@@ -78,7 +78,7 @@ export default function GeniesEnHerbeApp() {
           this.ctx.resume().catch(() => {});
         }
       },
-      tone(freq, dur = 0.12, type = "sine", delay = 0, vol = 0.14) {
+      tone(freq, dur = 0.10, type = "sine", delay = 0, vol = 0.06) {
         if (!cfg.sfx) return;
         try {
           this.init();
@@ -89,35 +89,38 @@ export default function GeniesEnHerbeApp() {
           osc.type = type;
           osc.frequency.setValueAtTime(freq, t0);
           gain.gain.setValueAtTime(0.001, t0);
-          gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.015);
-          gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+          gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
           osc.start(t0);
           osc.stop(t0 + dur + 0.02);
         } catch (e) {}
       },
+      // Bonne réponse : double note douce et feutrée (sinusoïdale pure, non stridente)
       ok() {
-        this.tone(523.25, 0.11, "triangle", 0, 0.16);
-        this.tone(659.25, 0.11, "triangle", 0.08, 0.16);
-        this.tone(783.99, 0.18, "triangle", 0.16, 0.18);
+        this.tone(587.33, 0.09, "sine", 0, 0.06);
+        this.tone(880.0, 0.12, "sine", 0.07, 0.06);
       },
+      // Série de 3+ : petit carillon doux
       streak() {
-        this.tone(523.25, 0.09, "triangle", 0, 0.16);
-        this.tone(659.25, 0.09, "triangle", 0.07, 0.16);
-        this.tone(783.99, 0.09, "triangle", 0.14, 0.16);
-        this.tone(1046.5, 0.25, "sine", 0.21, 0.2);
+        this.tone(523.25, 0.07, "sine", 0, 0.05);
+        this.tone(659.25, 0.07, "sine", 0.05, 0.05);
+        this.tone(783.99, 0.07, "sine", 0.10, 0.06);
+        this.tone(1046.5, 0.14, "sine", 0.15, 0.06);
       },
+      // Mauvaise réponse / temps écoulé : tonalité basse et feutrée (onde sinusoïdale douce, pas de son perçant)
       ko() {
-        this.tone(220, 0.16, "sawtooth", 0, 0.11);
-        this.tone(174.61, 0.24, "sawtooth", 0.14, 0.12);
+        this.tone(261.63, 0.10, "sine", 0, 0.05);
+        this.tone(220.0, 0.15, "sine", 0.08, 0.05);
       },
-      tick() {
-        this.tone(880, 0.045, "sine", 0, 0.07);
-      },
+      // Bips de clics et timer désactivés pour le confort sonore
+      tick() {},
+      ding() {},
+      // Victoire / fin de partie : harmonie discrète
       win() {
         [523.25, 659.25, 783.99, 1046.5].forEach((f, i) =>
-          this.tone(f, 0.18, "triangle", i * 0.1, 0.18)
+          this.tone(f, 0.14, "sine", i * 0.08, 0.06)
         );
       }
     };
@@ -307,14 +310,39 @@ export default function GeniesEnHerbeApp() {
     }
 
     const VIDE = new Set(
-      "euh heu hum hmm alors donc ben bah bon voila oui c ce est cest sont c'est la le les l un une des du de d reponse ma je pense crois dis dirais que qu il elle s agit".split(
+      "euh heu hum hmm alors donc ben bah bon voila oui non c ce cet cette est cest sont la le les l un une des du de d au aux reponse ma sa notre mon ton son je j moi toi pense crois sais dis dirais trouve veut dire que qu qui il elle ils elles on s agit sagit peut etre surement monsieur madame ville pays fleuve mont lac mer ocean capitale".split(
         " "
       )
     );
     const cle = (t) => t.filter((x) => !VIDE.has(x)).join("");
 
+    /* Normalisation phonétique tolérante (homophones & prononciation française) */
+    function phonetique(s) {
+      return String(s || "")
+        .toLowerCase()
+        .replace(/œ/g, "oe")
+        .replace(/æ/g, "ae")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/['’`\-]/g, " ")
+        .replace(/ph/g, "f")
+        .replace(/ck|qu|q/g, "k")
+        .replace(/c(?=[eiy])/g, "s")
+        .replace(/c(?=[aou])/g, "k")
+        .replace(/eau|eaux|au|aux/g, "o")
+        .replace(/ai|ei/g, "e")
+        .replace(/ou/g, "u")
+        .replace(/an|en|am|em/g, "an")
+        .replace(/in|ain|ein/g, "in")
+        .replace(/([bdfgklmnprstvz])\1+/g, "$1") // Réduction des doubles consonnes
+        .replace(/[sxzdt]$/g, "") // Retrait des consonnes muettes terminales fréquentes
+        .replace(/[^a-z0-9]/g, "")
+        .trim();
+    }
+
     function lev(a, b) {
-      const m = a.length, n = b.length;
+      const m = a.length,
+        n = b.length;
       if (!m) return n;
       if (!n) return m;
       let p = [...Array(n + 1).keys()];
@@ -334,21 +362,55 @@ export default function GeniesEnHerbeApp() {
 
     function juste(saisies, reponses) {
       for (const s0 of saisies) {
+        if (!s0) continue;
         const st = numeriser(mots(s0));
         if (!st.length) continue;
-        const sk = cle(st),
-          sj = " " + st.join(" ") + " ";
+        const sk = cle(st) || st.join(""),
+          sj = " " + st.join(" ") + " ",
+          sPhon = phonetique(sk);
+
         for (const r of reponses) {
           const rt = numeriser(mots(r)),
-            rk = cle(rt) || rt.join("");
+            rk = cle(rt) || rt.join(""),
+            rPhon = phonetique(rk);
+
           if (!rk) continue;
+
+          // 1. Correspondance exacte nettoyée
           if (sk === rk) return true;
+
+          // 2. Correspondance phonétique directe (ex: "La Paz" / "La passe", "Bogota" / "Bogotta")
+          if (sPhon && rPhon && sPhon === rPhon) return true;
+
           const num = /^\d+$/.test(rk);
+
+          // 3. La réponse est contenue dans ce que l'utilisateur a dit (ex: "Je pense que c'est Dakar")
           if ((rk.length >= 3 || num) && sj.includes(" " + rt.join(" ") + " "))
             return true;
+
+          // 4. L'utilisateur a prononcé le mot-clé principal / nom de famille de la réponse composée
+          // Ex: Réponse = "Albert Einstein", Joueur = "Einstein"
+          // Ex: Réponse = "Nelson Mandela", Joueur = "Mandela"
+          // Ex: Réponse = "Mont Everest", Joueur = "Everest"
+          const motsClesReponse = rt.filter((w) => !VIDE.has(w) && w.length >= 4);
+          if (motsClesReponse.length > 0) {
+            for (const mc of motsClesReponse) {
+              if (sk === mc || (sk.length >= 4 && lev(sk, mc) <= 1)) return true;
+              if (sPhon && sPhon === phonetique(mc)) return true;
+            }
+          }
+
           if (num) continue;
+
+          // 5. Tolérance Levenshtein sur le mot complet
           const tol = rk.length >= 9 ? 2 : rk.length >= 5 ? 1 : 0;
           if (sk && lev(sk, rk) <= tol) return true;
+
+          // 6. Tolérance phonétique Levenshtein (1 écart phonétique permis)
+          if (sPhon.length >= 5 && rPhon.length >= 5 && lev(sPhon, rPhon) <= 1)
+            return true;
+
+          // 7. Fenêtre glissante dans la phrase
           if (rk.length >= 4) {
             for (let a = 0; a < st.length; a++) {
               let w = "";
@@ -417,44 +479,62 @@ export default function GeniesEnHerbeApp() {
       if (!modal || !list) return;
 
       const plat = detecterPlateformeMicro();
+      const isStandalone =
+        (typeof window !== "undefined" &&
+          (window.matchMedia("(display-mode: standalone)").matches ||
+            window.navigator.standalone)) ||
+        false;
       let steps = [];
 
       if (!window.isSecureContext) {
         if (badge) badge.textContent = "Contexte Non Sécurisé (HTTP)";
         if (intro) {
           intro.textContent =
-            "Les navigateurs mobiles bloquent obligatoirement le microphone sur les connexions HTTP non chiffrées (ex: http://192.168.x.x) :";
+            "Les smartphones (iOS et Android) interdisent STRICTEMENT le microphone sur toute connexion HTTP non chiffrée (ex: http://192.168.x.x ou IP sans HTTPS) :";
         }
         steps = [
-          "<strong>Accède en HTTPS</strong> : Si tu es sur un nom de domaine (ex: Coolify), assure-toi que l'URL commence bien par https:// avec le certificat SSL activé.",
-          "<strong>Sur ordinateur de bureau</strong> : Tu peux tester directement sur <code>http://localhost:3000</code> où le micro est autorisé sans restriction.",
-          "<strong>En réseau local</strong> : Utilise la commande <code>npm run dev:https</code> pour générer un certificat local.",
-          "<strong>Solution immédiate</strong> : Joue sans micro en mode Clavier / Buzzer en cliquant sur le bouton ci-dessous."
-        ];
-      } else if (plat === "safari-ios") {
-        if (badge) badge.textContent = "iPhone / iPad (Safari)";
-        if (intro) {
-          intro.textContent =
-            "Safari sur iOS mémorise le refus d'accès. Voici comment débloquer le micro en 10 secondes :";
-        }
-        steps = [
-          "Dans la barre d'adresse de Safari (en haut ou en bas), touche l'icône <strong>« aA »</strong> ou le menu à gauche de l'URL.",
-          "Touche la ligne <strong>« Réglages du site web »</strong>.",
-          "Dans la section <strong>Microphone</strong>, choisis <strong>« Autoriser »</strong> (ou « Demander »).",
-          "<em>Option Dictée :</em> Si la voix ne transcrit pas, vérifie dans Réglages iPhone ➔ Général ➔ Clavier que <strong>« Activer la Dictée »</strong> est cochée.",
-          "Touche « Terminé » puis clique sur « 🔄 Tester à nouveau l'accès au micro »."
+          "<strong>Exigence de sécurité mobile</strong> : Chrome Mobile et Safari bloquent l'accès micro dès que l'adresse commence par <code>http://</code>. Seul <code>https://</code> est autorisé sur un téléphone.",
+          "<strong>Solution avec Coolify</strong> : Une fois déployé sur ton VPS Coolify avec ton nom de domaine et le certificat SSL (HTTPS gratuit), le micro sera débloqué automatiquement sur ton téléphone.",
+          "<strong>Pour tester sur ordinateur</strong> : Tu peux tester directement sur <code>http://localhost:3000</code> où le micro est autorisé sans restriction.",
+          "<strong>Solution immédiate</strong> : Touche « Jouer en mode Clavier » ci-dessous pour lancer la partie sans micro."
         ];
       } else if (plat === "chrome-android") {
-        if (badge) badge.textContent = "Android (Google Chrome)";
+        if (badge) badge.textContent = isStandalone ? "Android (PWA Installée)" : "Android (Chrome)";
         if (intro) {
-          intro.textContent =
-            "Chrome sur Android a placé ce site en liste bloquée. Pour réautoriser :";
+          intro.textContent = isStandalone
+            ? "L'application PWA installée a besoin de l'autorisation Microphone dans les paramètres Android de ton téléphone :"
+            : "Chrome sur Android a placé ce site en liste bloquée. Pour réautoriser :";
+        }
+        if (isStandalone) {
+          steps = [
+            "Sur l'écran d'accueil de ton téléphone Android, fais un <strong>appui long sur l'icône de l'application « Génies en Herbe »</strong>.",
+            "Touche le petit bouton <strong>« ℹ️ » (Infos sur l'application)</strong>.",
+            "Touche <strong>« Autorisations »</strong> (ou Permissions) ➔ <strong>« Microphone »</strong>.",
+            "Choisis <strong>« Autoriser seulement si l'appli est en cours d'utilisation »</strong>.",
+            "Reviens dans l'application et touche « 🔄 Tester à nouveau l'accès au micro »."
+          ];
+        } else {
+          steps = [
+            "Touche l'icône du <strong>cadenas 🔒</strong> ou des paramètres à gauche de l'adresse web.",
+            "Touche <strong>« Autorisations »</strong> (ou « Paramètres du site »).",
+            "Touche <strong>« Microphone »</strong> et choisis <strong>« Autoriser »</strong>.",
+            "Reviens sur cette page et touche « 🔄 Tester à nouveau l'accès au micro »."
+          ];
+        }
+      } else if (plat === "safari-ios") {
+        if (badge) badge.textContent = isStandalone ? "iPhone / iPad (PWA)" : "iPhone / iPad (Safari)";
+        if (intro) {
+          intro.textContent = isStandalone
+            ? "Sur iPhone, Apple applique des restrictions sur les Web Apps de l'écran d'accueil :"
+            : "Safari sur iOS mémorise le refus d'accès. Voici comment débloquer le micro en 10 secondes :";
         }
         steps = [
-          "Touche l'icône du <strong>cadenas 🔒</strong> ou des paramètres à gauche de l'adresse web.",
-          "Touche <strong>« Autorisations »</strong> (ou « Paramètres du site »).",
-          "Touche <strong>« Microphone »</strong> et choisis <strong>« Autoriser »</strong>.",
-          "Reviens sur cette page et touche « 🔄 Tester à nouveau l'accès au micro »."
+          "Ouvre l'application <strong>Réglages</strong> de ton iPhone.",
+          "Fais défiler jusqu'à <strong>Safari</strong> (ou le nom de l'application) ➔ <strong>Microphone</strong> ➔ Choisis <strong>« Autoriser »</strong>.",
+          "<em>Option Dictée :</em> Dans Réglages iPhone ➔ Général ➔ Clavier, assure-toi que <strong>« Activer la Dictée »</strong> est cochée.",
+          isStandalone
+            ? "<em>Astuce PWA iOS :</em> Si Apple bloque la dictée vocale en mode plein écran, ouvre directement le site dans l'application <strong>Safari</strong>, ou joue au clavier."
+            : "Touche « Terminé » puis clique sur « 🔄 Tester à nouveau l'accès au micro »."
         ];
       } else if (plat === "safari-mac") {
         if (badge) badge.textContent = "Mac (Safari)";
@@ -483,16 +563,43 @@ export default function GeniesEnHerbeApp() {
         ];
       }
 
-      list.innerHTML = steps
-        .map(
-          (s, i) => `
+      const diagHtml = `
+        <div style="margin-top:12px;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid var(--line);border-radius:10px;font-size:12px;line-height:1.6">
+          <div style="font-weight:700;color:var(--led);margin-bottom:4px">🔍 Diagnostic de ton téléphone :</div>
+          <div>• <b>Protocole :</b> <code>${window.location.protocol}//${window.location.host}</code></div>
+          <div>• <b>Sécurisé (requis mobile) :</b> ${
+            window.isSecureContext
+              ? "<span style='color:var(--ok)'>✅ OUI (HTTPS valide)</span>"
+              : "<span style='color:var(--bad)'>❌ NON (HTTP non sécurisé : Micro interdit par iOS/Android)</span>"
+          }</div>
+          <div>• <b>Mode :</b> ${isStandalone ? "📲 PWA Installée (Écran d'accueil)" : "🌐 Navigateur web"}</div>
+          <div>• <b>Accès matériel audio :</b> ${
+            navigator.mediaDevices && navigator.mediaDevices.getUserMedia
+              ? "✅ API Détectée"
+              : "❌ API Indisponible / Masquée par le navigateur"
+          }</div>
+          <div>• <b>Moteur vocal (SpeechRecognition) :</b> ${
+            SR ? "✅ Pris en charge" : "⚠️ Non disponible (jouer au clavier)"
+          }</div>
+          ${
+            V.lastError
+              ? `<div>• <b>Dernière erreur OS :</b> <code style="color:var(--bad)">${V.lastError}</code></div>`
+              : ""
+          }
+        </div>
+      `;
+
+      list.innerHTML =
+        steps
+          .map(
+            (s, i) => `
         <li>
           <span class="step-num">${i + 1}</span>
           <span>${s}</span>
         </li>
       `
-        )
-        .join("");
+          )
+          .join("") + diagHtml;
 
       modal.classList.add("show");
     }
@@ -832,6 +939,7 @@ export default function GeniesEnHerbeApp() {
     }
 
     function stopEcoute() {
+      resetAccumulationVocale();
       V.want = false;
       if (V.rec) {
         try {
@@ -878,41 +986,100 @@ export default function GeniesEnHerbeApp() {
       majMic();
     }
 
+    let timerValidationVocale = null;
+    let saisieVocaleAccumulee = "";
+
+    function resetAccumulationVocale() {
+      if (timerValidationVocale) {
+        clearTimeout(timerValidationVocale);
+        timerValidationVocale = null;
+      }
+      saisieVocaleAccumulee = "";
+    }
+
     const CMD_PASSE = /^(je )?(passe|passer|joker)$/;
     const CMD_INDICE = /^(un )?(autre )?indice( suivant)?$/;
     const CMD_SUIV = /^(question )?suivante?$|^(on )?continue$|^ok$|^d'?accord$/;
 
     function entendu(alts) {
       if (!S) return;
-      const p = alts[0]
+      const premier = (alts[0] || "").trim();
+      if (!premier) return;
+
+      const p = premier
         .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/[.!?,]/g, "")
         .trim();
-      montrer(alts[0], false);
+
       if (S.etat === "retour") {
         if (CMD_SUIV.test(p)) suivant();
         return;
       }
       if (S.etat !== "question") return;
+
       const { it } = itemCourant();
+
       if (CMD_PASSE.test(p)) {
+        resetAccumulationVocale();
         valider(true);
         return;
       }
       if (it.type === "casse" && CMD_INDICE.test(p)) {
+        resetAccumulationVocale();
         indiceSuivant();
         return;
       }
       if (it.type === "assoc") {
-        if (/^valide/.test(p) && !$("#b-assoc")?.disabled) valider();
+        if (/^valide/.test(p) && !$("#b-assoc")?.disabled) {
+          resetAccumulationVocale();
+          valider();
+        }
         return;
       }
+
+      // Concaténation intelligente : si l'utilisateur prononce un nom composé en marquant une courte pause
+      if (!saisieVocaleAccumulee) {
+        saisieVocaleAccumulee = premier;
+      } else {
+        const pAcc = saisieVocaleAccumulee.toLowerCase();
+        const pPrem = premier.toLowerCase();
+        if (!pPrem.includes(pAcc) && !pAcc.includes(pPrem)) {
+          saisieVocaleAccumulee = `${saisieVocaleAccumulee} ${premier}`;
+        } else if (pPrem.length > pAcc.length) {
+          saisieVocaleAccumulee = premier;
+        }
+      }
+
+      const toutesHypotheses = Array.from(
+        new Set([saisieVocaleAccumulee, premier, ...alts])
+      );
+
+      // Affichage visuel direct de ce qui a été entendu
+      montrer(`🗣️ « ${saisieVocaleAccumulee} »`, false);
       const inp = $("#rep");
-      if (inp) inp.value = alts[0];
-      S.alts = alts;
-      valider();
+      if (inp) inp.value = saisieVocaleAccumulee;
+
+      // 1. DÉTECTION IMMÉDIATE : Si ce qui a été dit est DÉJÀ la bonne réponse,
+      // on valide à l'instant même, zéro attente !
+      if (it.type !== "assoc" && it.a && juste(toutesHypotheses, it.a)) {
+        resetAccumulationVocale();
+        S.alts = toutesHypotheses;
+        valider();
+        return;
+      }
+
+      // 2. TEMPORISATION D'HÉSITATION (1.1s) : Si la réponse n'est pas encore complète,
+      // on laisse le temps de prononcer la suite sans couper brutalement !
+      if (timerValidationVocale) clearTimeout(timerValidationVocale);
+      timerValidationVocale = setTimeout(() => {
+        if (S && S.etat === "question") {
+          S.alts = toutesHypotheses;
+          resetAccumulationVocale();
+          valider();
+        }
+      }, 1100);
     }
 
     function lire(txt, ensuite) {
@@ -1363,7 +1530,6 @@ export default function GeniesEnHerbeApp() {
       t.classList.toggle("warn", isWarn);
       if (isWarn && rest !== lastTickSec) {
         lastTickSec = rest;
-        SFX.tick();
       }
     }
 
@@ -1842,7 +2008,6 @@ export default function GeniesEnHerbeApp() {
         const list = store.get("geh-custom-qs", []);
         list.unshift({ rub, q, a, info, date: new Date().toISOString() });
         store.set("geh-custom-qs", list);
-        SFX.ok();
         renderTabAtelier();
       });
 
@@ -1872,7 +2037,6 @@ export default function GeniesEnHerbeApp() {
             if (arr.length) {
               const cur = store.get("geh-custom-qs", []);
               store.set("geh-custom-qs", [...arr, ...cur]);
-              SFX.ok();
               renderTabAtelier();
             }
           } catch (err) {}
@@ -2112,27 +2276,7 @@ export default function GeniesEnHerbeApp() {
     }
 
     function focusRep() {
-      const inp = $("#rep");
-      if (!inp || inp.disabled) return;
-      try {
-        inp.focus({ preventScroll: true });
-      } catch (e) {
-        inp.focus();
-      }
-      requestAnimationFrame(() => {
-        if (
-          S &&
-          S.etat === "question" &&
-          !inp.disabled &&
-          document.activeElement !== inp
-        ) {
-          try {
-            inp.focus({ preventScroll: true });
-          } catch (e) {
-            inp.focus();
-          }
-        }
-      });
+      // Focus automatique désactivé pour éviter l'ouverture intempestive du clavier virtuel sur mobile
     }
 
     function majGrilleMot(mot, val) {
@@ -2157,7 +2301,7 @@ export default function GeniesEnHerbeApp() {
     /* Input sur 1 ligne pleine largeur + Boutons Valider & Passer juste en dessous */
     function champ() {
       return `<div class="answer" id="form-rep">
-        <input id="rep" placeholder="Tape ta réponse ici…" aria-label="Ta réponse" autofocus enterkeyhint="done" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <input id="rep" placeholder="Tape ta réponse ici…" aria-label="Ta réponse" enterkeyhint="done" autocomplete="off" autocapitalize="off" spellcheck="false">
         <div class="answer-actions">
           <button class="btn" type="button" id="b-val">✓ Valider</button>
           <button class="btn ghost" type="button" id="b-pass">Passer →</button>
@@ -2280,6 +2424,7 @@ export default function GeniesEnHerbeApp() {
     }
 
     function valider(passe) {
+      resetAccumulationVocale();
       if (!S || S.etat !== "question") return;
       const { r, it } = itemCourant();
       let ok = false,
@@ -2308,7 +2453,6 @@ export default function GeniesEnHerbeApp() {
       } else {
         saisie = passe ? "" : $("#rep")?.value || "";
         if (!passe && !saisie.trim()) {
-          $("#rep")?.focus();
           return;
         }
         ok = !passe && juste([saisie, ...(S.alts || [])], it.a);
@@ -2867,7 +3011,6 @@ export default function GeniesEnHerbeApp() {
           st.textContent = `✅ Application à jour (v${
             window.GEH_VERSION || "2.4.0"
           }) et prête hors-ligne !`;
-        SFX.ok();
       } catch (e) {
         if (st) st.textContent = "✅ Version actuelle prête hors-ligne.";
       }
