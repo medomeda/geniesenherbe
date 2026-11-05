@@ -30,15 +30,6 @@ const nextConfig = {
                 value: "application/manifest+json"
               }
             ]
-          },
-          {
-            source: "/(.*)",
-            headers: [
-              {
-                key: "Permissions-Policy",
-                value: "microphone=(self)"
-              }
-            ]
           }
         ]
       })

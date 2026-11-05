@@ -1263,6 +1263,27 @@ kbd {
   border-color: var(--led);
   background: rgba(255, 181, 71, 0.08);
 }
+.mic-meter {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 6px;
+  width: 100%;
+}
+.mic-meter-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #10b981 0%, #f59e0b 70%, #ef4444 100%);
+  border-radius: 999px;
+  transition: width 0.08s ease-out;
+}
+.mic-perm-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 
 .field input:not([type="range"]):not([type="checkbox"]):not([type="file"]),
 .field select,

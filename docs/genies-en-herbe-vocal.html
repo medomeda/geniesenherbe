@@ -1082,6 +1082,9 @@
     .mic-perm-box.granted { border-color: var(--ok); background: var(--ok-bg); }
     .mic-perm-box.denied { border-color: var(--bad); background: var(--bad-bg); }
     .mic-perm-box.prompt { border-color: var(--led); background: rgba(255, 181, 71, 0.08); }
+    .mic-meter { height: 6px; background: rgba(255, 255, 255, 0.12); border-radius: 999px; overflow: hidden; margin-top: 6px; width: 100%; }
+    .mic-meter-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #10b981 0%, #f59e0b 70%, #ef4444 100%); border-radius: 999px; transition: width 0.08s ease-out; }
+    .mic-perm-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
     .field input:not([type="range"]):not([type="checkbox"]):not([type="file"]),
     .field select,
@@ -1300,6 +1303,24 @@
       <ol class="install-steps" id="install-modal-steps"></ol>
       <div class="row" style="justify-content:flex-end;margin-top:4px">
         <button class="btn sm" type="button" id="b-close-install-modal" style="width:100%">✓ J'ai compris</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fenêtre modale d'aide pour débloquer le microphone -->
+  <div class="install-modal" id="mic-modal" role="dialog" aria-modal="true" aria-labelledby="mic-modal-title">
+    <div class="install-modal-card">
+      <div class="eyebrow">
+        <span>Autorisation Navigateur</span>
+        <span class="chip warn" id="mic-modal-badge">Microphone</span>
+      </div>
+      <h3 class="rub" id="mic-modal-title" style="font-size:22px">🎙️ Comment débloquer le micro ?</h3>
+      <p class="hint" id="mic-modal-intro" style="margin:0;color:var(--fg)">Le navigateur ou le système bloque actuellement l'accès au micro pour ce site :</p>
+      <ol class="install-steps" id="mic-modal-steps"></ol>
+      <div class="col" style="gap:8px;margin-top:6px">
+        <button class="btn sm" type="button" id="b-retry-mic-modal" style="width:100%">🔄 Tester à nouveau l'accès au micro</button>
+        <button class="btn sm ghost" type="button" id="b-switch-keyboard" style="width:100%">⌨️ Jouer en mode Clavier / Buzzer (sans micro)</button>
+        <button class="btn sm ghost" type="button" id="b-close-mic-modal" style="width:100%">✕ Fermer cette aide</button>
       </div>
     </div>
   </div>
@@ -1657,10 +1678,156 @@ function juste(saisies, reponses) {
 /* --- Voix : reconnaissance (micro) et synthèse vocale (TTS) --- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 const TTS = window.speechSynthesis;
-const V = { rec: null, on: false, want: false, bloque: false, perm: "prompt", testRec: null };
+const V = { rec: null, on: false, want: false, bloque: false, perm: "prompt", lastError: null, testRec: null };
+
+let streamTestActif = null;
+let animTestMicId = null;
+
+function detecterPlateformeMicro() {
+  const ua = (typeof navigator !== "undefined" && navigator.userAgent) || "";
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (typeof navigator !== "undefined" && navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/.test(ua);
+  const isMac = /Macintosh|Mac OS X/.test(ua) && !isIOS;
+  const isChrome = /Chrome|CriOS/.test(ua) && !/Edg|OPR/.test(ua);
+  const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|Edg|OPR/.test(ua);
+  const isFirefox = /Firefox|FxiOS/.test(ua);
+  const isEdge = /Edg/.test(ua);
+  if (isIOS) return "safari-ios";
+  if (isAndroid) return "chrome-android";
+  if (isMac && isSafari) return "safari-mac";
+  if (isChrome) return "chrome-pc";
+  if (isEdge) return "edge-pc";
+  if (isFirefox) return "firefox";
+  return "general";
+}
+
+function fermerModalMicro() {
+  $("#mic-modal")?.classList.remove("show");
+}
+
+function ouvrirModalMicro() {
+  const modal = $("#mic-modal");
+  const list = $("#mic-modal-steps");
+  const intro = $("#mic-modal-intro");
+  const badge = $("#mic-modal-badge");
+  if (!modal || !list) return;
+
+  const plat = detecterPlateformeMicro();
+  let steps = [];
+
+  if (!window.isSecureContext) {
+    if (badge) badge.textContent = "Contexte Non Sécurisé (HTTP)";
+    if (intro) intro.textContent = "Les navigateurs mobiles bloquent obligatoirement le micro sur les connexions HTTP (ex: http://192.168.x.x) :";
+    steps = [
+      "<strong>Accède en HTTPS</strong> : Assure-toi que l'URL commence par https:// avec certificat SSL actif.",
+      "<strong>Sur ordinateur</strong> : Teste directement sur <code>http://localhost:3000</code> où le micro est autorisé sans restriction.",
+      "<strong>Solution immédiate</strong> : Joue sans micro en mode Clavier / Buzzer en cliquant ci-dessous."
+    ];
+  } else if (plat === "safari-ios") {
+    if (badge) badge.textContent = "iPhone / iPad (Safari)";
+    if (intro) intro.textContent = "Safari sur iOS mémorise le refus d'accès. Pour réactiver :";
+    steps = [
+      "Dans la barre d'adresse de Safari, touche l'icône <strong>« aA »</strong> à gauche de l'URL.",
+      "Touche <strong>« Réglages du site web »</strong>.",
+      "Dans <strong>Microphone</strong>, choisis <strong>« Autoriser »</strong>.",
+      "<em>Option Dictée :</em> Si la voix ne transcrit pas, vérifie dans Réglages iPhone ➔ Général ➔ Clavier que <strong>« Activer la Dictée »</strong> est cochée.",
+      "Touche « Terminé » puis clique sur « 🔄 Tester à nouveau l'accès au micro »."
+    ];
+  } else if (plat === "chrome-android") {
+    if (badge) badge.textContent = "Android (Google Chrome)";
+    if (intro) intro.textContent = "Chrome Android a bloqué ce site. Pour réautoriser :";
+    steps = [
+      "Touche l'icône du <strong>cadenas 🔒</strong> à gauche de l'adresse.",
+      "Touche <strong>« Autorisations »</strong> ➔ <strong>« Microphone »</strong> ➔ <strong>« Autoriser »</strong>.",
+      "Reviens sur cette page et touche « 🔄 Tester à nouveau l'accès au micro »."
+    ];
+  } else if (plat === "safari-mac") {
+    if (badge) badge.textContent = "Mac (Safari)";
+    if (intro) intro.textContent = "Safari macOS bloque le micro pour ce site. Voici la procédure :";
+    steps = [
+      "Dans le menu tout en haut de ton Mac, clique sur <strong>Safari</strong> ➔ <strong>« Réglages pour ce site web… »</strong>.",
+      "En face de <strong>Microphone</strong>, choisis <strong>« Autoriser »</strong>.",
+      "Vérifie aussi dans Réglages Système Mac ➔ Confidentialité et sécurité ➔ Microphone que Safari est coché.",
+      "Clique sur « 🔄 Tester à nouveau l'accès au micro »."
+    ];
+  } else {
+    if (badge) badge.textContent = "Google Chrome / Edge / Firefox";
+    if (intro) intro.textContent = "Le navigateur a mémorisé « Bloqué » pour ce site. Pour débloquer :";
+    steps = [
+      "Dans la barre d'adresse tout en haut, clique sur l'icône <strong>🔒 (Cadenas)</strong> ou <strong>🎛️ (Paramètres du site)</strong> à gauche de l'URL.",
+      "En face de <strong>Microphone</strong>, bascule sur <strong>« Autoriser »</strong>.",
+      "<em>Sur Mac :</em> Ouvre  ➔ <em>Réglages Système</em> ➔ <em>Confidentialité & Sécurité</em> ➔ <em>Microphone</em> et assure-toi que ton navigateur y est coché.",
+      "Clique sur le bouton ci-dessous « 🔄 Tester à nouveau l'accès au micro »."
+    ];
+  }
+
+  list.innerHTML = steps.map((s, i) => `<li><span class="step-num">${i + 1}</span><span>${s}</span></li>`).join("");
+  modal.classList.add("show");
+}
+
+function arreterTestAudio() {
+  if (animTestMicId) { cancelAnimationFrame(animTestMicId); animTestMicId = null; }
+  if (streamTestActif) {
+    try { streamTestActif.getTracks().forEach((t) => t.stop()); } catch (e) {}
+    streamTestActif = null;
+  }
+}
+
+function testerNiveauMicrophone(stream, dureeMs = 4000) {
+  arreterTestAudio();
+  streamTestActif = stream;
+  const meterBox = $("#mic-meter");
+  const meterBar = $("#mic-meter-bar");
+  if (meterBox) meterBox.style.display = "block";
+  if (meterBar) meterBar.style.width = "5%";
+
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) {
+    setTimeout(() => { arreterTestAudio(); if (meterBox) meterBox.style.display = "none"; }, dureeMs);
+    return;
+  }
+
+  try {
+    const ctx = new AudioCtx();
+    const source = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    let sonDetecte = false;
+
+    const loop = () => {
+      if (!streamTestActif) return;
+      analyser.getByteFrequencyData(dataArray);
+      let sum = 0;
+      for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+      const avg = sum / dataArray.length;
+      const pct = Math.min(100, Math.round((avg / 55) * 100));
+      if (pct > 12) sonDetecte = true;
+      if (meterBar) meterBar.style.width = Math.max(4, pct) + "%";
+      animTestMicId = requestAnimationFrame(loop);
+    };
+    loop();
+
+    setTimeout(() => {
+      arreterTestAudio();
+      try { ctx.close(); } catch (e) {}
+      if (meterBox) meterBox.style.display = "none";
+      if (sonDetecte) {
+        majBanniereMicroAccueil("✅ Parfait ! Ta voix a été captée par le micro. Tu es prêt pour jouer !");
+      } else {
+        majBanniereMicroAccueil("✅ Micro autorisé et connecté (parle plus fort si besoin pour faire bouger la jauge).");
+      }
+    }, dureeMs);
+  } catch (e) {
+    arreterTestAudio();
+    if (meterBox) meterBox.style.display = "none";
+  }
+}
 
 async function initPermissionMicro() {
-  if (!window.isSecureContext) { V.perm = "insecure"; return; }
+  if (!window.isSecureContext) { V.perm = "insecure"; majBanniereMicroAccueil(); return; }
   if (navigator.permissions && navigator.permissions.query) {
     try {
       const status = await navigator.permissions.query({ name: "microphone" });
@@ -1678,24 +1845,42 @@ initPermissionMicro();
 async function demanderPermissionMicro(avecTestVocal = false) {
   if (!window.isSecureContext) {
     V.perm = "insecure";
-    majBanniereMicroAccueil("⚠️ Connexion non sécurisée (HTTP). Sur mobile, ouvre l'application en HTTPS pour débloquer le micro.");
+    majBanniereMicroAccueil("⚠️ Connexion non sécurisée (HTTP). Sur mobile, le micro exige HTTPS (ou lance sur localhost).");
+    ouvrirModalMicro();
     return false;
   }
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     try {
-      majBanniereMicroAccueil("🔔 Autorise l'accès au micro dans la fenêtre de ton téléphone…");
+      majBanniereMicroAccueil("🔔 Clique sur « Autoriser » dans la notification du navigateur…");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) => track.stop());
       V.perm = "granted";
       V.bloque = false;
+      V.lastError = null;
       SFX.ok();
-      majBanniereMicroAccueil(avecTestVocal ? "🎙️ Micro autorisé ! Dis un mot maintenant pour tester…" : "✅ Micro du téléphone autorisé et prêt pour la partie !");
-      if (avecTestVocal && SR) testerReconnaissanceAccueil();
+
+      if (avecTestVocal) {
+        majBanniereMicroAccueil("🎙️ Micro ouvert ! Dis un mot : observe la jauge sonore…");
+        testerNiveauMicrophone(stream, 4000);
+        if (SR) testerReconnaissanceAccueil();
+      } else {
+        stream.getTracks().forEach((track) => track.stop());
+        majBanniereMicroAccueil("✅ Microphone autorisé et prêt pour la partie !");
+      }
       return true;
     } catch (err) {
       V.perm = "denied";
       V.bloque = true;
-      majBanniereMicroAccueil("⚠️ Accès au micro refusé ou bloqué. Touche l'icône 🔒 dans la barre d'adresse → Autoriser le microphone, puis réessaie.");
+      V.lastError = err ? (err.name || err.message) : "PermissionDenied";
+      let msg = "⚠️ Accès au micro refusé ou bloqué.";
+      if (err && (err.name === "NotAllowedError" || err.name === "PermissionDeniedError")) {
+        msg = "🚫 Le navigateur bloque le micro. Touche l'icône 🔒 à gauche de l'adresse web pour changer en « Autoriser ».";
+      } else if (err && (err.name === "NotFoundError" || err.name === "DevicesNotFoundError")) {
+        msg = "❌ Aucun microphone physique détecté sur cet appareil.";
+      } else if (err && err.name === "NotReadableError") {
+        msg = "⚠️ Le microphone est occupé par une autre application (ferme Zoom/Teams).";
+      }
+      majBanniereMicroAccueil(msg);
+      if (avecTestVocal) ouvrirModalMicro();
       return false;
     }
   } else if (SR) {
@@ -1703,8 +1888,10 @@ async function demanderPermissionMicro(avecTestVocal = false) {
     V.bloque = false;
     if (avecTestVocal) testerReconnaissanceAccueil();
     return true;
+  } else {
+    majBanniereMicroAccueil("⚠️ La reconnaissance vocale n'est pas supportée sur ce navigateur (utilise Chrome ou Safari à jour).");
+    return false;
   }
-  return false;
 }
 
 function testerReconnaissanceAccueil() {
@@ -1719,7 +1906,12 @@ function testerReconnaissanceAccueil() {
     r.onresult = (e) => {
       let txt = "";
       for (let i = e.resultIndex; i < e.results.length; i++) txt += e.results[i][0].transcript;
-      if (txt.trim()) majBanniereMicroAccueil(`✅ Micro testé avec succès ! J'ai entendu : « ${txt.trim()} »`);
+      if (txt.trim()) majBanniereMicroAccueil(`✅ Voix comprise avec succès ! J'ai entendu : « ${txt.trim()} »`);
+    };
+    r.onerror = (e) => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        majBanniereMicroAccueil("ℹ️ Micro actif. Si la transcription vocale ne répond pas, active la Dictée dans tes réglages clavier ou réponds au clavier.");
+      }
     };
     r.onend = () => { V.testRec = null; };
     r.start();
@@ -1736,12 +1928,25 @@ function majBanniereMicroAccueil(customMsg) {
   if (V.perm === "granted") box.classList.add("granted");
   else if (V.perm === "denied" || V.perm === "insecure") box.classList.add("denied");
   else box.classList.add("prompt");
+
   const txtEl = $("#mic-perm-txt");
   const btnEl = $("#b-test-mic");
-  if (txtEl) {
-    txtEl.textContent = customMsg || (V.perm === "granted" ? "✅ Accès au microphone autorisé sur cet appareil." : V.perm === "denied" ? "⚠️ Micro bloqué : autorise le microphone dans les réglages du navigateur (🔒)." : "🎙️ Touche « Autoriser & Tester le micro » pour activer le micro de ton téléphone.");
+  const btnHelp = $("#b-help-mic");
+
+  if (btnHelp) {
+    btnHelp.style.display = (V.perm === "denied" || V.perm === "insecure") ? "inline-flex" : "none";
   }
-  if (btnEl) btnEl.textContent = V.perm === "granted" ? "🎙️ Tester le micro" : "🎙️ Autoriser & Tester le micro";
+
+  if (txtEl) {
+    if (customMsg) txtEl.textContent = customMsg;
+    else if (V.perm === "insecure") txtEl.textContent = "⚠️ Connexion HTTP non sécurisée : sur mobile, le micro exige HTTPS (utilise « npm run dev:https »).";
+    else if (V.perm === "granted") txtEl.textContent = "✅ Accès au microphone autorisé sur cet appareil.";
+    else if (V.perm === "denied") txtEl.textContent = "🚫 Micro bloqué par le navigateur : clique sur le cadenas 🔒 à gauche de l'URL pour Autoriser.";
+    else txtEl.textContent = "🎙️ Touche « Autoriser & Tester le micro » pour activer le micro de ton appareil.";
+  }
+  if (btnEl) {
+    btnEl.textContent = V.perm === "granted" ? "🎙️ Tester le micro" : V.perm === "denied" ? "🔄 Réessayer l'accès" : "🎙️ Autoriser & Tester le micro";
+  }
 }
 
 function ecouter(fromUserGesture = false) {
@@ -2254,8 +2459,16 @@ function renderTabJouer() {
           </button>
         </div>
         <div class="mic-perm-box" id="mic-perm-box" style="display:${cfg.voix ? "flex" : "none"}">
-          <span id="mic-perm-txt" style="flex:1;min-width:180px"></span>
-          <button type="button" class="btn sm" id="b-test-mic">🎙️ Autoriser & Tester le micro</button>
+          <div style="flex:1;min-width:190px">
+            <span id="mic-perm-txt"></span>
+            <div id="mic-meter" class="mic-meter" style="display:none">
+              <div class="mic-meter-bar" id="mic-meter-bar"></div>
+            </div>
+          </div>
+          <div class="mic-perm-actions">
+            <button type="button" class="btn sm" id="b-test-mic">🎙️ Autoriser & Tester le micro</button>
+            <button type="button" class="btn sm ghost" id="b-help-mic" style="display:none;color:var(--led)">🔓 Comment débloquer ?</button>
+          </div>
         </div>
       </div>
 
@@ -2312,6 +2525,10 @@ function renderTabJouer() {
   $("#b-test-mic")?.addEventListener("click", async () => {
     SFX.init();
     await demanderPermissionMicro(true);
+  });
+
+  $("#b-help-mic")?.addEventListener("click", () => {
+    ouvrirModalMicro();
   });
 
   $("#in-temps").addEventListener("input", (e) => {
@@ -3246,6 +3463,23 @@ $("#b-install-top")?.addEventListener("click", declencherInstallation);
 $("#b-close-install-modal")?.addEventListener("click", fermerModalInstallation);
 $("#install-modal")?.addEventListener("click", (e) => {
   if (e.target.id === "install-modal") fermerModalInstallation();
+});
+
+$("#b-close-mic-modal")?.addEventListener("click", fermerModalMicro);
+$("#mic-modal")?.addEventListener("click", (e) => {
+  if (e.target.id === "mic-modal") fermerModalMicro();
+});
+$("#b-retry-mic-modal")?.addEventListener("click", async () => {
+  fermerModalMicro();
+  SFX.init();
+  await demanderPermissionMicro(true);
+});
+$("#b-switch-keyboard")?.addEventListener("click", () => {
+  fermerModalMicro();
+  cfg.voix = false;
+  store.set("geh-cfg", cfg);
+  if (!S) renderAccueil();
+  SFX.ding();
 });
 
 window.addEventListener("beforeinstallprompt", (e) => {
