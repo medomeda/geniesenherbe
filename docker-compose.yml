@@ -13,13 +13,13 @@ services:
       # Coolify génère l'URL et route le trafic vers le port 3000 du conteneur
       - SERVICE_FQDN_GENIESENHERBE_3000
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=3400
       - HOSTNAME=0.0.0.0
       - NEXT_TELEMETRY_DISABLED=1
     # Pas de "ports:" : le proxy de Coolify (Traefik/Caddy) accède au conteneur
     # via le réseau interne. Décommente pour un test local hors Coolify :
     # ports:
-    #   - "3000:3000"
+    #   - "3400:3000"
     expose:
       - "3000"
     healthcheck:
