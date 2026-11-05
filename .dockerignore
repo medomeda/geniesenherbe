@@ -1,0 +1,29 @@
+# Dépendances et builds locaux
+node_modules
+.next
+out
+build
+
+# Version HTML statique (GitHub Pages), inutile dans l'image
+docs
+
+# Git, éditeurs, divers
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+*.md
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Secrets et certificats locaux
+.env*
+certificates
+*.pem
+
+# Fichiers Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore

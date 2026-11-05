@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Build autonome (.next/standalone) pour une image Docker légère
+  output: "standalone",
   headers: async () => [
     {
       source: "/sw.js",
