@@ -1928,7 +1928,7 @@ export default function GeniesEnHerbeApp() {
         <p class="lead">Choisis une thématique ou une rubrique ci-dessous pour lancer une séance d'entraînement ciblée :</p>
 
         <div class="field" style="margin-bottom:14px">
-          <div class="seg-row-3" id="seg-theme-tab" style="max-width:380px">
+          <div class="seg-row-2 seg-theme-tab" id="seg-theme-tab">
             <button type="button" data-mode="themes" class="active" aria-pressed="true">
               <b>🌍 12 Thématiques</b>
             </button>
@@ -3341,12 +3341,14 @@ export default function GeniesEnHerbeApp() {
     majBtnSfx();
 
     function ouvrirDrawer() {
+      $("#side-panel").style.display = "block"; // écrase le display:none posé en partie
       $("#side-panel").classList.add("drawer-open");
       $("#b-close-drawer").style.display = "inline-flex";
       $("#backdrop").classList.add("show");
     }
     function fermerDrawer() {
       $("#side-panel").classList.remove("drawer-open");
+      $("#side-panel").style.display = "none";
       $("#b-close-drawer").style.display = "none";
       $("#backdrop").classList.remove("show");
     }

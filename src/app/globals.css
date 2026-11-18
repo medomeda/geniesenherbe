@@ -1921,3 +1921,40 @@ kbd {
 }
 
 
+
+/* Sélecteur Thématiques / Rubriques TV : pleine largeur, 2 boutons égaux, cible tactile confortable */
+.seg-theme-tab {
+  max-width: 560px;
+}
+.seg-theme-tab button {
+  min-height: 48px;
+  padding: 10px 12px;
+}
+.seg-theme-tab button b {
+  justify-content: center;
+  white-space: nowrap;
+  font-size: 14.5px;
+}
+@media (max-width: 420px) {
+  .seg-theme-tab {
+    gap: 8px;
+  }
+  .seg-theme-tab button b {
+    font-size: 13px;
+  }
+}
+
+/* Tiroir des rubriques en partie : entête collé en haut, bouton Fermer toujours visible */
+@media (max-width: 860px) {
+  .side.drawer-open .side-head {
+    position: sticky;
+    top: -12px;
+    z-index: 2;
+    background: var(--panel);
+    padding: 12px 0 8px;
+    margin: -12px 0 8px;
+  }
+  .side.drawer-open .side-head .btn {
+    margin-left: auto;
+  }
+}
