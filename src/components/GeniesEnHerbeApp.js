@@ -1939,8 +1939,8 @@ export default function GeniesEnHerbeApp() {
           cont.querySelectorAll(".theme-card-item").forEach((card) => {
             const go = async () => {
               SFX.init();
-              cfg.themeCible = card.dataset.theme;
-              await nouvellePartie("theme");
+              const ti = THEMES.findIndex((t) => t.id === card.dataset.theme);
+              await nouvellePartie("theme", ti >= 0 ? ti : 0);
             };
             card.addEventListener("click", go);
             card.addEventListener("keydown", (e) => {
@@ -2013,7 +2013,7 @@ export default function GeniesEnHerbeApp() {
           <!-- 1. Mode de réponse -->
           <div class="field">
             <span>1. Mode de réponse principal</span>
-            <div class="seg-row-3" id="param-seg-rep">
+            <div class="seg-row-2" id="param-seg-rep">
               <button type="button" data-act="clavier" aria-pressed="${!cfg.voix}">
                 <b>⌨️ Clavier</b>
                 <small>Saisie écrite classique</small>
@@ -2045,7 +2045,7 @@ export default function GeniesEnHerbeApp() {
           <!-- 3. Voix de l'Animateur -->
           <div class="field">
             <span>3. Voix de l'Animateur (Lecture vocale des questions)</span>
-            <div class="seg-row-3" id="param-seg-tts">
+            <div class="seg-row-2" id="param-seg-tts">
               <button type="button" data-act="tts-on" aria-pressed="${cfg.lecture}">
                 <b>🗣️ Activée</b>
                 <small>Lit les questions à voix haute</small>
@@ -2060,7 +2060,7 @@ export default function GeniesEnHerbeApp() {
           <!-- 4. Effets Sonores (SFX) -->
           <div class="field">
             <span>4. Effets Sonores du Plateau (SFX)</span>
-            <div class="seg-row-3" id="param-seg-sfx">
+            <div class="seg-row-2" id="param-seg-sfx">
               <button type="button" data-act="sfx-on" aria-pressed="${cfg.sfx}">
                 <b>🔊 Sons Activés</b>
                 <small>Bonne réponse, fin de manche</small>
