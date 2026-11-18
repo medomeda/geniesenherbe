@@ -1208,9 +1208,28 @@ export default function GeniesEnHerbeApp() {
     function construire(format = cfg.format, cibleIndex = cfg.cibleRub) {
       const BANK = getBank();
       const pris = {};
+
+      // Mémoire des questions récemment posées : on les repousse en fin de tirage
+      // pour que deux parties successives ne se ressemblent pas (anti par-cœur).
+      const RECENT_MAX = 300;
+      const recent = new Set(store.get("geh-recent", []));
+      const keyOf = (x) =>
+        Array.isArray(x)
+          ? String(x[0])
+          : String(x.theme || x.lettre || (x.ind && x.ind[0]) || "");
+      const fresh = (arr) => {
+        const m = shuffle(arr);
+        return [...m.filter((x) => !recent.has(keyOf(x))), ...m.filter((x) => recent.has(keyOf(x)))];
+      };
+      const asked = [];
+      const saveRecent = () =>
+        store.set("geh-recent", [...new Set([...asked, ...recent])].slice(0, RECENT_MAX));
+      const note = (list) => list.forEach((x) => asked.push(keyOf(x)));
       const pick = (id, n) => {
-        if (!pris[id] || pris[id].length < n) pris[id] = shuffle(BANK[id] || []);
-        return pris[id].splice(0, n);
+        if (!pris[id] || pris[id].length < n) pris[id] = fresh(BANK[id] || []);
+        const out = pris[id].splice(0, n);
+        note(out);
+        return out;
       };
 
       if (format === "revision") {
@@ -1239,8 +1258,10 @@ export default function GeniesEnHerbeApp() {
       if (format === "theme") {
         const TBANK = getThemesBank();
         const tm = THEMES[cibleIndex] || THEMES[0];
-        const pool = shuffle(TBANK[tm.id] || []);
+        const pool = fresh(TBANK[tm.id] || []);
         const qs = pool.slice(0, Math.min(10, pool.length));
+        note(qs);
+        saveRecent();
         return [
           {
             id: tm.id,
@@ -1281,7 +1302,7 @@ export default function GeniesEnHerbeApp() {
         ];
       }
 
-      return selection.map((r, ri) => {
+      const rubsBuilt = selection.map((r, ri) => {
         let items = [];
         if (
           ["sport", "cinema", "musique", "langage", "franco", "monde", "eclairs"].includes(
@@ -1306,8 +1327,9 @@ export default function GeniesEnHerbeApp() {
             info
           }));
         } else if (r.id === "qui") {
-          const g = shuffle(BANK.qui)[0];
-          items = g.qs.map(([q, a, info]) => ({
+          const g = fresh(BANK.qui)[0];
+          note([g]);
+          items = shuffle(g.qs).map(([q, a, info]) => ({
             type: "texte",
             q,
             a,
@@ -1315,8 +1337,9 @@ export default function GeniesEnHerbeApp() {
             lettre: g.lettre
           }));
         } else if (r.id === "cantonade") {
-          const g = shuffle(BANK.cantonade)[0];
-          items = g.qs.map(([q, a, info]) => ({
+          const g = fresh(BANK.cantonade)[0];
+          note([g]);
+          items = shuffle(g.qs).map(([q, a, info]) => ({
             type: "texte",
             q,
             a,
@@ -1324,7 +1347,8 @@ export default function GeniesEnHerbeApp() {
             theme: g.theme
           }));
         } else if (r.id === "casse") {
-          const gList = shuffle(BANK.casse).slice(0, r.n || 1);
+          const gList = fresh(BANK.casse).slice(0, r.n || 1);
+          note(gList);
           items = gList.map((g) => ({
             type: "casse",
             ind: g.ind,
@@ -1335,12 +1359,14 @@ export default function GeniesEnHerbeApp() {
           items = pick("assoc", r.n).map((g) => ({
             type: "assoc",
             theme: g.theme,
-            paires: g.paires,
+            paires: shuffle(g.paires),
             info: g.info
           }));
         }
         return { ...r, ri, items, pts: 0, ok: 0, fait: 0 };
       });
+      saveRecent();
+      return rubsBuilt;
     }
 
     async function nouvellePartie(formatOverride, rubIndexOverride) {

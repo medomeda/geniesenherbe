@@ -2595,77 +2595,165 @@ function majBadgeErreurs() {
 function construire(format = cfg.format, cibleIndex = cfg.cibleRub) {
   const BANK = getBank();
   const pris = {};
+
+  // Mémoire des questions récemment posées : on les repousse en fin de tirage
+  // pour que deux parties successives ne se ressemblent pas (anti par-cœur).
+  const RECENT_MAX = 300;
+  const recent = new Set(store.get("geh-recent", []));
+  const keyOf = (x) =>
+    Array.isArray(x)
+      ? String(x[0])
+      : String(x.theme || x.lettre || (x.ind && x.ind[0]) || "");
+  const fresh = (arr) => {
+    const m = shuffle(arr);
+    return [...m.filter((x) => !recent.has(keyOf(x))), ...m.filter((x) => recent.has(keyOf(x)))];
+  };
+  const asked = [];
+  const saveRecent = () =>
+    store.set("geh-recent", [...new Set([...asked, ...recent])].slice(0, RECENT_MAX));
+  const note = (list) => list.forEach((x) => asked.push(keyOf(x)));
   const pick = (id, n) => {
-    if (!pris[id] || pris[id].length < n) pris[id] = shuffle(BANK[id] || []);
-    return pris[id].splice(0, n);
+    if (!pris[id] || pris[id].length < n) pris[id] = fresh(BANK[id] || []);
+    const out = pris[id].splice(0, n);
+    note(out);
+    return out;
   };
 
   if (format === "revision") {
     const errs = shuffle(getMistakes()).slice(0, 12);
-    return [{
-      id: "revision",
-      nom: "Révision de mes erreurs",
-      icon: "🧠",
-      n: errs.length,
-      ri: 0,
-      pts: 0,
-      ok: 0,
-      fait: 0,
-      items: errs.map((e) => ({ type: "texte", q: e.q, a: Array.isArray(e.a) ? e.a : [e.a], info: e.info, isRevision: true }))
-    }];
+    return [
+      {
+        id: "revision",
+        nom: "Révision de mes erreurs",
+        icon: "🧠",
+        n: errs.length,
+        ri: 0,
+        pts: 0,
+        ok: 0,
+        fait: 0,
+        items: errs.map((e) => ({
+          type: "texte",
+          q: e.q,
+          a: Array.isArray(e.a) ? e.a : [e.a],
+          info: e.info,
+          isRevision: true
+        }))
+      }
+    ];
   }
 
   if (format === "theme") {
     const TBANK = getThemesBank();
     const tm = THEMES[cibleIndex] || THEMES[0];
-    const pool = shuffle(TBANK[tm.id] || []);
+    const pool = fresh(TBANK[tm.id] || []);
     const qs = pool.slice(0, Math.min(10, pool.length));
-    return [{
-      id: tm.id,
-      nom: tm.nom || tm.titre,
-      titre: tm.titre || tm.nom,
-      sousTitre: tm.sousTitre || "",
-      icon: tm.icon,
-      isTheme: true,
-      n: qs.length,
-      ri: 0,
-      pts: 0,
-      ok: 0,
-      fait: 0,
-      items: qs.map(([q, a, info]) => ({ type: "texte", q, a, info, sousTitre: tm.sousTitre || "" }))
-    }];
+    note(qs);
+    saveRecent();
+    return [
+      {
+        id: tm.id,
+        nom: tm.nom || tm.titre,
+        titre: tm.titre || tm.nom,
+        sousTitre: tm.sousTitre || "",
+        icon: tm.icon,
+        isTheme: true,
+        n: qs.length,
+        ri: 0,
+        pts: 0,
+        ok: 0,
+        fait: 0,
+        items: qs.map(([q, a, info]) => ({
+          type: "texte",
+          q,
+          a,
+          info,
+          sousTitre: tm.sousTitre || ""
+        }))
+      }
+    ];
   }
 
   let selection = RUBRIQUES.map((r, idx) => ({ ...r, origIdx: idx }));
   if (format === "express") {
-    selection = [RUBRIQUES[0], RUBRIQUES[2], RUBRIQUES[6], RUBRIQUES[8], { ...RUBRIQUES[7], nom: "Éclairs Express", n: 5 }];
+    selection = [
+      RUBRIQUES[0],
+      RUBRIQUES[2],
+      RUBRIQUES[6],
+      RUBRIQUES[8],
+      { ...RUBRIQUES[7], nom: "Éclairs Express", n: 5 }
+    ];
   } else if (format === "rubrique") {
     const r = RUBRIQUES[cibleIndex] || RUBRIQUES[0];
-    selection = [{ ...r, n: r.id === "casse" ? 2 : r.id === "assoc" ? 3 : Math.max(r.n, 6) }];
+    selection = [
+      { ...r, n: r.id === "casse" ? 2 : r.id === "assoc" ? 3 : Math.max(r.n, 6) }
+    ];
   }
 
-  return selection.map((r, ri) => {
+  const rubsBuilt = selection.map((r, ri) => {
     let items = [];
-    if (["sport", "cinema", "musique", "langage", "franco", "monde", "eclairs"].includes(r.id)) {
+    if (
+      ["sport", "cinema", "musique", "langage", "franco", "monde", "eclairs"].includes(
+        r.id
+      )
+    ) {
       items = pick(r.id, r.n).map(([q, a, info]) => ({ type: "texte", q, a, info }));
     } else if (r.id === "relais") {
-      items = pick("relais", r.n).map(([q, a, info]) => ({ type: "texte", q, a, info, relais: true }));
+      items = pick("relais", r.n).map(([q, a, info]) => ({
+        type: "texte",
+        q,
+        a,
+        info,
+        relais: true
+      }));
     } else if (r.id === "mots") {
-      items = pick("mots", r.n).map(([q, m, info]) => ({ type: "texte", q, a: [m], mot: m, info }));
+      items = pick("mots", r.n).map(([q, m, info]) => ({
+        type: "texte",
+        q,
+        a: [m],
+        mot: m,
+        info
+      }));
     } else if (r.id === "qui") {
-      const g = shuffle(BANK.qui)[0];
-      items = g.qs.map(([q, a, info]) => ({ type: "texte", q, a, info, lettre: g.lettre }));
+      const g = fresh(BANK.qui)[0];
+      note([g]);
+      items = shuffle(g.qs).map(([q, a, info]) => ({
+        type: "texte",
+        q,
+        a,
+        info,
+        lettre: g.lettre
+      }));
     } else if (r.id === "cantonade") {
-      const g = shuffle(BANK.cantonade)[0];
-      items = g.qs.map(([q, a, info]) => ({ type: "texte", q, a, info, theme: g.theme }));
+      const g = fresh(BANK.cantonade)[0];
+      note([g]);
+      items = shuffle(g.qs).map(([q, a, info]) => ({
+        type: "texte",
+        q,
+        a,
+        info,
+        theme: g.theme
+      }));
     } else if (r.id === "casse") {
-      const gList = shuffle(BANK.casse).slice(0, r.n || 1);
-      items = gList.map((g) => ({ type: "casse", ind: g.ind, a: g.rep, info: g.info }));
+      const gList = fresh(BANK.casse).slice(0, r.n || 1);
+      note(gList);
+      items = gList.map((g) => ({
+        type: "casse",
+        ind: g.ind,
+        a: g.rep,
+        info: g.info
+      }));
     } else if (r.id === "assoc") {
-      items = pick("assoc", r.n).map((g) => ({ type: "assoc", theme: g.theme, paires: g.paires, info: g.info }));
+      items = pick("assoc", r.n).map((g) => ({
+        type: "assoc",
+        theme: g.theme,
+        paires: shuffle(g.paires),
+        info: g.info
+      }));
     }
     return { ...r, ri, items, pts: 0, ok: 0, fait: 0 };
   });
+  saveRecent();
+  return rubsBuilt;
 }
 
 function nouvellePartie(formatOverride, rubIndexOverride) {
