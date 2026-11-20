@@ -1419,20 +1419,22 @@
       transform: translateX(4px);
     }
 
+    /* Grille de tuiles tactiles du Menu */
     .dash-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 9px;
-      margin-bottom: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
     }
     .dash-tile {
       background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 11px;
-      padding: 9px 12px;
+      border-radius: 14px;
+      padding: 16px 16px 15px;
+      min-height: 132px;
       display: flex;
       flex-direction: column;
-      gap: 3px;
+      gap: 6px;
       cursor: pointer;
       transition: all 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
       text-align: left;
@@ -1442,8 +1444,8 @@
     .dash-tile:hover {
       border-color: var(--led);
       background: var(--panel2);
-      transform: translateY(-1.5px);
-      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.32);
     }
     .dash-tile:active {
       transform: scale(0.985);
@@ -1452,17 +1454,25 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1px;
+      margin-bottom: 4px;
     }
     .dash-tile .tile-icon {
-      font-size: 19px;
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      font-size: 26px;
       line-height: 1;
+      background: #0b1822;
+      border: 1px solid var(--line);
+      border-radius: 12px;
     }
     .dash-tile .tile-badge {
-      font-size: 10px;
-      padding: 1px 6px;
+      font-size: 11.5px;
+      padding: 3px 9px;
       border-radius: 999px;
       font-weight: 700;
+      white-space: nowrap;
     }
     .dash-tile .tile-badge.ok {
       background: rgba(95, 208, 138, 0.2);
@@ -1476,16 +1486,16 @@
     }
     .dash-tile .tile-title {
       font-family: var(--f-display);
-      font-size: 13.5px;
+      font-size: 16.5px;
       font-weight: 700;
       color: var(--fg);
       margin: 0;
       line-height: 1.2;
     }
     .dash-tile .tile-desc {
-      font-size: 11px;
+      font-size: 13px;
       color: var(--muted);
-      line-height: 1.25;
+      line-height: 1.35;
       margin: 0;
     }
 
